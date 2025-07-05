@@ -1,0 +1,13 @@
+
+# Key бота
+botToken: 8195690396:AAHxkOmCu513fNQKjUZLdxLBesKr-mYy-fM
+
+# Уровень логгера
+log-level: 5
+
+# Это прод?
+production: false
+
+# Список админов
+admins:
+  - !!str Sazonovme
