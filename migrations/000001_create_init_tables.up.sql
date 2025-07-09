@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS current_event(
    team_1 VARCHAR (100) NOT NULL,
    team_2 VARCHAR (100) NOT NULL,
    date TIMESTAMPTZ NOT NULL,
-   result VARCHAR (5) /* 2-1 */
+   result VARCHAR (5) /* 2-1 t1 */
 );
 
 CREATE TABLE IF NOT EXISTS current_predictions(

@@ -52,12 +52,13 @@ func (r *mainRepository) AddResultToEvent(ctx context.Context, result string) er
 	return nil
 }
 
-func (r *mainRepository) GetEventFinishTable(ctx context.Context) ([]model.FinishTable, error) {
+func (r *mainRepository) GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, error) {
 	query := `SELECT 
 				cp.username,
 				ce.name,
 				cp.prediction,
-				ce.result
+				ce.result,
+				ce.date
 			FROM
 				current_event as ce
 			INNER JOIN current_predictions as cp 
@@ -72,10 +73,10 @@ func (r *mainRepository) GetEventFinishTable(ctx context.Context) ([]model.Finis
 
 	logger.Debug("Success get sql rows for finish table in db", "repository-getEventFinishTable()", nil)
 
-	finishTables := []model.FinishTable{}
+	finishTables := []model.EventFinishTable{}
 	for sqlRows.Next() {
-		finishTable := model.FinishTable{}
-		err := sqlRows.Scan(&finishTable.Username, &finishTable.Name, &finishTable.Prediction, &finishTable.Result)
+		finishTable := model.EventFinishTable{}
+		err := sqlRows.Scan(&finishTable.Username, &finishTable.Name_match, &finishTable.User_prediction, &finishTable.Result_match, &finishTable.Date_match)
 		if err != nil {
 			logger.Error("Scan finish table in db error", "repository-getEventFinishTable()", err)
 			return nil, err

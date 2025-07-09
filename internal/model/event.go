@@ -16,9 +16,13 @@ type UserPrediction struct {
 	Prediction string
 }
 
-type FinishTable struct {
-	Username   string
-	Name       string
-	Prediction string
-	Result     string
+type EventFinishTable struct {
+	Username        string
+	Name_match      string
+	Date_match      time.Time
+	User_prediction string
+	Result_match    string
+	Score           int
 }
+
+type ScoreFinishTable map[string]int

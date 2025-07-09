@@ -15,7 +15,7 @@ type Handler struct {
 type Service interface {
 	CreateEvent(ctx context.Context, event model.Event) error
 	AddResultToEvent(ctx context.Context, result string) error
-	GetEventFinishTable(ctx context.Context) ([]model.FinishTable, error)
+	GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, model.ScoreFinishTable, error)
 	GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
 }
