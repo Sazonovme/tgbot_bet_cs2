@@ -13,7 +13,16 @@ CREATE TABLE IF NOT EXISTS current_event(
 );
 
 CREATE TABLE IF NOT EXISTS current_predictions(
-   username VARCHAR (100) NOT NULL,
+   username TEXT NOT NULL REFERENCES telegram_users(chat_id),
    id_event INT REFERENCES current_event(id),
    prediction VARCHAR (5) NOT NULL
+);
+
+CREATE TABLE telegram_users (
+    chat_id BIGINT PRIMARY KEY,
+    username TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW()
 );

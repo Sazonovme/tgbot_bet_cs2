@@ -13,6 +13,8 @@ type Handler struct {
 }
 
 type Service interface {
+	Start(ctx context.Context, user *model.User) error
+	Stop(ctx context.Context, chat_id int) error
 	CreateEvent(ctx context.Context, event model.Event) error
 	AddResultToEvent(ctx context.Context, result string) error
 	GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, model.ScoreFinishTable, error)
@@ -28,6 +30,14 @@ func NewHandler(s Service) *Handler {
 
 func (h *Handler) Start(data model.HandlerData) {
 	msg := tgbotapi.NewMessage(data.ChatID, "Привет, это бот для ставок на КС2, lets go")
+	_, err := h.BotApi.Send(msg)
+	if err == nil {
+		h.Service.Start()
+	}
+}
+
+func (h *Handler) Stop(data model.HandlerData) {
+	msg := tgbotapi.NewMessage(data.ChatID, "gg, ты больше не участник, так даже лучше, лузеры нам не нужны")
 	h.BotApi.Send(msg)
 }
 

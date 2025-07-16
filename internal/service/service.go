@@ -17,12 +17,24 @@ type Repository interface {
 	GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, error)
 	GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
+	AddNewUser(ctx context.Context, user *model.User) error
+	DeactivateUser(ctx context.Context, chat_id int) error
 }
 
 func NewService(repo Repository) *Service {
 	return &Service{
 		Repository: repo,
 	}
+}
+
+// GENERAL
+
+func (s *Service) Start(ctx context.Context, user *model.User) error {
+	return s.Repository.AddNewUser(ctx, user)
+}
+
+func (s *Service) Stop(ctx context.Context, chat_id int) error {
+	return s.Repository.DeactivateUser(ctx, chat_id)
 }
 
 // ADMIN

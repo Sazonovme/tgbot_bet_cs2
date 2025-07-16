@@ -137,3 +137,40 @@ func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *mode
 	logger.Debug("Success add user prediction in db", "repository-addUserPrediction()", nil)
 	return nil
 }
+
+func (r *mainRepository) AddNewUser(ctx context.Context, user *model.User) error {
+	query := `INSERT INTO telegram_users (chat_id, username, first_name, last_name, is_active)
+				VALUES (@chat_id, @username, @first_name, @last_name, true)
+				ON CONFLICT (chat_id) DO UPDATE SET is_active = true`
+	args := pgx.NamedArgs{
+		"chat_id":    user.Chat_id,
+		"username":   user.Username,
+		"first_name": user.First_name,
+		"last_name":  user.Last_name,
+	}
+	_, err := r.db.Exec(ctx, query, args)
+	if err != nil {
+		logger.Error("Error add new user in db", "repository-AddNewUser()", err)
+		return err
+	}
+
+	logger.Debug("Success add new user in db", "repository-AddNewUser()", nil)
+	return nil
+}
+
+func (r *mainRepository) DeactivateUser(ctx context.Context, chat_id int) error {
+	query := `UPDATE telegram_users
+			SET is_active = false
+			WHERE chat_id = @chat_id;`
+	args := pgx.NamedArgs{
+		"chat_id": chat_id,
+	}
+	_, err := r.db.Exec(ctx, query, args)
+	if err != nil {
+		logger.Error("Error deactivate user in db", "repository-DeactivateUser()", err)
+		return err
+	}
+
+	logger.Debug("Success deactivate user in db", "repository-DeactivateUser()", nil)
+	return nil
+}

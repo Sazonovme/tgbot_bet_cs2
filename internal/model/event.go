@@ -2,6 +2,13 @@ package model
 
 import "time"
 
+type User struct {
+	Chat_id    int
+	Username   string
+	First_name string
+	Last_name  string
+}
+
 type Event struct {
 	Name  string
 	Date  time.Time
