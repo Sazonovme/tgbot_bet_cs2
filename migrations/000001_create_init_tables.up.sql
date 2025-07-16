@@ -3,26 +3,33 @@ migrate create -ext sql -dir migrations -seq create_users_table
 migrate -path ../../migrations -database "postgres://postgres@localhost:5432/rushbanana_db?sslmode=disable" up
 */
 
-CREATE TABLE IF NOT EXISTS current_event(
+CREATE TABLE IF NOT EXISTS matches (
+   id SERIAL PRIMARY KEY,
+   tournament_id INT REFERENCES tournament(id),
+   name VARCHAR(300) NOT NULL,
+   team_1 VARCHAR(100) NOT NULL,
+   team_2 VARCHAR(100) NOT NULL,
+   date TIMESTAMPTZ NOT NULL,
+   result VARCHAR(5) -- например: '2-1'
+);
+
+CREATE TABLE IF NOT EXISTS tournament(
    id serial PRIMARY KEY,
    name VARCHAR (300) NOT NULL,
-   team_1 VARCHAR (100) NOT NULL,
-   team_2 VARCHAR (100) NOT NULL,
-   date TIMESTAMPTZ NOT NULL,
-   result VARCHAR (5) /* 2-1 t1 */
+   is_active BOOLEAN
 );
 
-CREATE TABLE IF NOT EXISTS current_predictions(
+CREATE TABLE IF NOT EXISTS predictions(
    username TEXT NOT NULL REFERENCES telegram_users(chat_id),
-   id_event INT REFERENCES current_event(id),
-   prediction VARCHAR (5) NOT NULL
+   match_id INT REFERENCES matches(id),
+   prediction VARCHAR (5) NOT NULL -- например: '2-1' или "1"
 );
 
-CREATE TABLE telegram_users (
-    chat_id BIGINT PRIMARY KEY,
-    username TEXT,
-    first_name TEXT,
-    last_name TEXT,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS telegram_users (
+   chat_id BIGINT PRIMARY KEY,
+   username TEXT,
+   first_name TEXT,
+   last_name TEXT,
+   is_active BOOLEAN DEFAULT true,
+   created_at TIMESTAMP DEFAULT NOW()
 );

@@ -1,5 +1,7 @@
-DROP TABLE IF EXISTS current_event;
+DROP TABLE IF EXISTS predictions;
 
-DROP TABLE IF EXISTS current_predictions;
+DROP TABLE IF EXISTS matches;
 
 DROP TABLE IF EXISTS telegram_users;
+
+DROP TABLE IF EXISTS tournament;
