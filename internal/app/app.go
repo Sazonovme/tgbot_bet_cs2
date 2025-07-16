@@ -56,15 +56,15 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 		case update.Message.Text == "/start":
 			a.Handler.Start(data)
 		case update.Message.Text == "/create-event":
-			// ds
+			a.Handler.CreateEvent(data)
 		case update.Message.Text == "/add-result":
-			//ds
+			a.Handler.AddResult(data)
 		case update.Message.Text == "/finish-tournament":
-			// ыв
+			a.Handler.FinishTournament(data)
 		case update.Message.Text == "/my-predictions":
-			//ds
+			a.Handler.MyPredictions(data)
 		case strings.Contains(update.Message.Text, "/match"):
-			// dsd
+			a.Handler.MakePrediction(data)
 		}
 	}
 }
@@ -76,33 +76,3 @@ func PrepareData(update tgbotapi.Update) model.HandlerData {
 		Text:     update.Message.Text,
 	}
 }
-
-// func BuildKeyboard(username string) tgbotapi.ReplyKeyboardMarkup {
-// 	var rows [][]tgbotapi.KeyboardButton
-
-// 	// Админские кнопки
-// 	if user.IsAdmin(username) {
-// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 			tgbotapi.NewKeyboardButton("➕ Добавить ивент"),
-// 		))
-// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 			tgbotapi.NewKeyboardButton("🎯 Добавить результат"),
-// 		))
-// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 			tgbotapi.NewKeyboardButton("🏁 Завершить турнир"),
-// 		))
-// 	}
-
-// 	// Пользовательская кнопка
-// 	rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 		tgbotapi.NewKeyboardButton("📄 Мои ставки"),
-// 	))
-
-// 	// Кнопки матчей
-// 	rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 		tgbotapi.NewKeyboardButton("⚔️ Матч 1"),
-// 		tgbotapi.NewKeyboardButton("⚔️ Матч 2"),
-// 	))
-
-// 	return tgbotapi.NewReplyKeyboard(rows...)
-// }

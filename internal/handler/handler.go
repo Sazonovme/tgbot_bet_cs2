@@ -31,22 +31,52 @@ func (h *Handler) Start(data model.HandlerData) {
 	h.BotApi.Send(msg)
 }
 
-func (h *Handler) CreateEvent() {
+func (h *Handler) CreateEvent(data model.HandlerData) {
 
 }
 
-func (h *Handler) AddResult() {
+func (h *Handler) AddResult(data model.HandlerData) {
 
 }
 
-func (h *Handler) FinishTournament() {
+func (h *Handler) FinishTournament(data model.HandlerData) {
 
 }
 
-func (h *Handler) MyPredictions() {
+func (h *Handler) MyPredictions(data model.HandlerData) {
 
 }
 
-func (h *Handler) MakePrediction() {
+func (h *Handler) MakePrediction(data model.HandlerData) {
 
 }
+
+// func BuildKeyboard(username string) tgbotapi.ReplyKeyboardMarkup {
+// 	var rows [][]tgbotapi.KeyboardButton
+
+// 	// Админские кнопки
+// 	if user.IsAdmin(username) {
+// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
+// 			tgbotapi.NewKeyboardButton("➕ Добавить ивент"),
+// 		))
+// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
+// 			tgbotapi.NewKeyboardButton("🎯 Добавить результат"),
+// 		))
+// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
+// 			tgbotapi.NewKeyboardButton("🏁 Завершить турнир"),
+// 		))
+// 	}
+
+// 	// Пользовательская кнопка
+// 	rows = append(rows, tgbotapi.NewKeyboardButtonRow(
+// 		tgbotapi.NewKeyboardButton("📄 Мои ставки"),
+// 	))
+
+// 	// Кнопки матчей
+// 	rows = append(rows, tgbotapi.NewKeyboardButtonRow(
+// 		tgbotapi.NewKeyboardButton("⚔️ Матч 1"),
+// 		tgbotapi.NewKeyboardButton("⚔️ Матч 2"),
+// 	))
+
+// 	return tgbotapi.NewReplyKeyboard(rows...)
+// }
