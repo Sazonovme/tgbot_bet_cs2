@@ -54,15 +54,17 @@ func (r *mainRepository) AddResultToEvent(ctx context.Context, result string) er
 
 func (r *mainRepository) GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, error) {
 	query := `SELECT 
-				cp.username,
-				ce.name,
-				cp.prediction,
-				ce.result,
-				ce.date
-			FROM
-				current_event as ce
-			INNER JOIN current_predictions as cp 
-			ON ce.id = cp.id_event`
+    			cp.username,
+   				ce.name,
+    			cp.prediction,
+    			ce.result,
+   				ce.date
+			FROM current_event AS ce
+			INNER JOIN current_predictions AS cp 
+    			ON ce.id = cp.id_event
+			INNER JOIN telegram_users AS tu
+    			ON cp.username = tu.chat_id
+			WHERE tu.is_active = true`
 
 	sqlRows, err := r.db.Query(ctx, query)
 	if err != nil {
