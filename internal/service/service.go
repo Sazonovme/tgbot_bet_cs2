@@ -18,7 +18,7 @@ type Repository interface {
 	GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
 	AddNewUser(ctx context.Context, user *model.User) error
-	DeactivateUser(ctx context.Context, chat_id int) error
+	DeactivateUser(ctx context.Context, chat_id int64) error
 }
 
 func NewService(repo Repository) *Service {
@@ -33,7 +33,7 @@ func (s *Service) Start(ctx context.Context, user *model.User) error {
 	return s.Repository.AddNewUser(ctx, user)
 }
 
-func (s *Service) Stop(ctx context.Context, chat_id int) error {
+func (s *Service) Stop(ctx context.Context, chat_id int64) error {
 	return s.Repository.DeactivateUser(ctx, chat_id)
 }
 

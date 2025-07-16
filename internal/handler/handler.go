@@ -14,7 +14,7 @@ type Handler struct {
 
 type Service interface {
 	Start(ctx context.Context, user *model.User) error
-	Stop(ctx context.Context, chat_id int) error
+	Stop(ctx context.Context, chat_id int64) error
 	CreateEvent(ctx context.Context, event model.Event) error
 	AddResultToEvent(ctx context.Context, result string) error
 	GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, model.ScoreFinishTable, error)
@@ -28,36 +28,39 @@ func NewHandler(s Service) *Handler {
 	}
 }
 
-func (h *Handler) Start(data model.HandlerData) {
-	msg := tgbotapi.NewMessage(data.ChatID, "Привет, это бот для ставок на КС2, lets go")
+func (h *Handler) Start(user *model.User, ctx context.Context) {
+	msg := tgbotapi.NewMessage(user.Chat_id, "Привет, это бот для ставок на КС2, lets go")
 	_, err := h.BotApi.Send(msg)
 	if err == nil {
-		h.Service.Start()
+		h.Service.Start(ctx, user)
+	} else {
+		h.Service.Stop(ctx, user.Chat_id)
 	}
 }
 
-func (h *Handler) Stop(data model.HandlerData) {
-	msg := tgbotapi.NewMessage(data.ChatID, "gg, ты больше не участник, так даже лучше, лузеры нам не нужны")
+func (h *Handler) Stop(user *model.User, ctx context.Context) {
+	msg := tgbotapi.NewMessage(user.Chat_id, "gg, ты больше не участник, так даже лучше, лузеры нам не нужны")
 	h.BotApi.Send(msg)
+	h.Service.Stop(ctx, user.Chat_id)
 }
 
-func (h *Handler) CreateEvent(data model.HandlerData) {
-
-}
-
-func (h *Handler) AddResult(data model.HandlerData) {
+func (h *Handler) CreateEvent(user *model.User, ctx context.Context) {
 
 }
 
-func (h *Handler) FinishTournament(data model.HandlerData) {
+func (h *Handler) AddResult(user *model.User, ctx context.Context) {
 
 }
 
-func (h *Handler) MyPredictions(data model.HandlerData) {
+func (h *Handler) FinishTournament(user *model.User, ctx context.Context) {
 
 }
 
-func (h *Handler) MakePrediction(data model.HandlerData) {
+func (h *Handler) MyPredictions(user *model.User, ctx context.Context) {
+
+}
+
+func (h *Handler) MakePrediction(user *model.User, ctx context.Context) {
 
 }
 

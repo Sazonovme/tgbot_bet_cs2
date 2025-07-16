@@ -3,10 +3,11 @@ package model
 import "time"
 
 type User struct {
-	Chat_id    int
+	Chat_id    int64
 	Username   string
 	First_name string
 	Last_name  string
+	TextMsg    string
 }
 
 type Event struct {

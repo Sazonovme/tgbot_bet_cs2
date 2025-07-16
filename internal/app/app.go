@@ -4,8 +4,10 @@ import (
 	"RushBananaBet/internal/handler"
 	"RushBananaBet/internal/model"
 	"RushBananaBet/pkg/logger"
+	"context"
 	"os"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -51,28 +53,35 @@ func (a *App) StartPolling() {
 
 func (a *App) RouteUpdate(update tgbotapi.Update) {
 	if update.Message != nil {
-		data := PrepareData(update)
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		userData := PrepareUserData(update)
+
 		switch {
 		case update.Message.Text == "/start":
-			a.Handler.Start(data)
+			a.Handler.Start(userData, ctx)
+		case update.Message.Text == "/stop":
+			a.Handler.Stop(userData, ctx)
 		case update.Message.Text == "/create-event":
-			a.Handler.CreateEvent(data)
+			a.Handler.CreateEvent(userData, ctx)
 		case update.Message.Text == "/add-result":
-			a.Handler.AddResult(data)
+			a.Handler.AddResult(userData, ctx)
 		case update.Message.Text == "/finish-tournament":
-			a.Handler.FinishTournament(data)
+			a.Handler.FinishTournament(userData, ctx)
 		case update.Message.Text == "/my-predictions":
-			a.Handler.MyPredictions(data)
+			a.Handler.MyPredictions(userData, ctx)
 		case strings.Contains(update.Message.Text, "/match"):
-			a.Handler.MakePrediction(data)
+			a.Handler.MakePrediction(userData, ctx)
 		}
 	}
 }
 
-func PrepareData(update tgbotapi.Update) model.HandlerData {
-	return model.HandlerData{
-		ChatID:   update.Message.Chat.ID,
-		UserName: update.Message.From.UserName,
-		Text:     update.Message.Text,
+func PrepareUserData(update tgbotapi.Update) *model.User {
+	return &model.User{
+		Chat_id:    update.Message.Chat.ID,
+		Username:   update.Message.From.UserName,
+		First_name: update.Message.From.FirstName,
+		Last_name:  update.Message.From.LastName,
+		TextMsg:    update.Message.Text,
 	}
 }

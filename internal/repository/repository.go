@@ -158,7 +158,7 @@ func (r *mainRepository) AddNewUser(ctx context.Context, user *model.User) error
 	return nil
 }
 
-func (r *mainRepository) DeactivateUser(ctx context.Context, chat_id int) error {
+func (r *mainRepository) DeactivateUser(ctx context.Context, chat_id int64) error {
 	query := `UPDATE telegram_users
 			SET is_active = false
 			WHERE chat_id = @chat_id;`
