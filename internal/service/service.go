@@ -12,10 +12,11 @@ type Service struct {
 }
 
 type Repository interface {
-	CreateEvent(ctx context.Context, event model.Event) error
-	AddResultToEvent(ctx context.Context, result string) error
-	GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, error)
-	GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error)
+	CreateTournament(ctx context.Context, name_tournament string) error
+	CreateMatch(ctx context.Context, match *model.Match) error
+	AddMatchResult(ctx context.Context, result string, match_id int) error
+	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, error)
+	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
 	AddNewUser(ctx context.Context, user *model.User) error
 	DeactivateUser(ctx context.Context, chat_id int64) error
@@ -27,52 +28,47 @@ func NewService(repo Repository) *Service {
 	}
 }
 
-// GENERAL
-
-func (s *Service) Start(ctx context.Context, user *model.User) error {
-	return s.Repository.AddNewUser(ctx, user)
-}
-
-func (s *Service) Stop(ctx context.Context, chat_id int64) error {
-	return s.Repository.DeactivateUser(ctx, chat_id)
-}
-
 // ADMIN
 
-func (s *Service) CreateEvent(ctx context.Context, event model.Event) error {
-	return s.Repository.CreateEvent(ctx, event)
+func (s *Service) CreateTournament(ctx context.Context, name_tournament string) error {
+	return s.Repository.CreateTournament(ctx, name_tournament)
 }
 
-func (s *Service) AddResultToEvent(ctx context.Context, result string) error {
-	return s.Repository.AddResultToEvent(ctx, result)
+func (s *Service) CreateMatch(ctx context.Context, match *model.Match) error {
+	return s.Repository.CreateMatch(ctx, match)
 }
 
-func (s *Service) GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, model.ScoreFinishTable, error) {
-	eventFinishTable, err := s.Repository.GetEventFinishTable(ctx)
+func (s *Service) AddMatchResult(ctx context.Context, result string, match_id int) error {
+	return s.Repository.AddMatchResult(ctx, result, match_id)
+}
+
+func (s *Service) GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, *model.ScoreFinishTable, error) {
+	tournamentFinishTablePointer, err := s.Repository.GetTournamentFinishTable(ctx)
 	if err != nil {
 		logger.Error("Error get event finish table from repo", "service-GetEventFinishTable()", err)
 		return nil, nil, err
 	}
 
-	mScore := map[string]int{}
+	tournamentFinishTable := *tournamentFinishTablePointer
+	mScore := model.ScoreFinishTable{}
 	curScore := 0
-	for key, elem := range eventFinishTable {
+	for key, elem := range tournamentFinishTable {
 
 		// Calc score
 		if strings.Contains(elem.User_prediction, "t") {
 			prediction_team := strings.Replace(elem.User_prediction, "t", "", -1)
-			firstChar := string([]rune(elem.Result_match)[0])
+			firstChar := string([]rune(elem.Match_result)[0])
 			if (firstChar == "2" && prediction_team == "1") || (firstChar != "2" && prediction_team == "2") {
 				curScore = 1
 			}
 		} else {
-			if elem.User_prediction == elem.Result_match {
+			if elem.User_prediction == elem.Match_result {
 				curScore = 2
 			}
 		}
 
 		// Add score
-		eventFinishTable[key].Score = curScore
+		tournamentFinishTable[key].Score = curScore
 		if curScore != 0 {
 			val, ok := mScore[elem.Username]
 			if !ok {
@@ -84,15 +80,25 @@ func (s *Service) GetEventFinishTable(ctx context.Context) ([]model.EventFinishT
 		}
 	}
 
-	return eventFinishTable, mScore, nil
+	return &tournamentFinishTable, &mScore, nil
 }
 
 // USER
 
-func (s *Service) GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error) {
+func (s *Service) GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error) {
 	return s.Repository.GetUserPredictions(ctx, username)
 }
 
 func (s *Service) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error {
 	return s.Repository.AddUserPrediction(ctx, prediction)
+}
+
+// GENERAL
+
+func (s *Service) AddNewUser(ctx context.Context, user *model.User) error {
+	return s.Repository.AddNewUser(ctx, user)
+}
+
+func (s *Service) DeactivateUser(ctx context.Context, chat_id int64) error {
+	return s.Repository.DeactivateUser(ctx, chat_id)
 }

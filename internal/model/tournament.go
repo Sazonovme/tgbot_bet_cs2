@@ -10,7 +10,7 @@ type User struct {
 	TextMsg    string
 }
 
-type Event struct {
+type Match struct {
 	Name  string
 	Date  time.Time
 	Team1 string
@@ -18,18 +18,18 @@ type Event struct {
 }
 
 type UserPrediction struct {
-	NameEvent  string
-	UserName   string
-	Id_event   uint
+	Match_Name string
+	Username   string
+	Match_id   uint
 	Prediction string
 }
 
-type EventFinishTable struct {
+type TournamentFinishTable struct {
 	Username        string
-	Name_match      string
-	Date_match      time.Time
+	Match_name      string
+	Match_date      time.Time
 	User_prediction string
-	Result_match    string
+	Match_result    string
 	Score           int
 }
 

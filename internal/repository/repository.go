@@ -21,27 +21,69 @@ func NewRepository(db *pgxpool.Pool) *mainRepository {
 
 // ADMIN
 
-func (r *mainRepository) CreateEvent(ctx context.Context, event model.Event) error {
-	query := `INSERT INTO current_event(name, team_1, team_2, date) VALUES (@name, @team1, @team2, @date)`
-	args := pgx.NamedArgs{
-		"name":  event.Name,
-		"team1": event.Team1,
-		"team2": event.Team2,
-		"date":  event.Date,
-	}
-	_, err := r.db.Exec(ctx, query, args)
+func (r *mainRepository) CreateTournament(ctx context.Context, name_tournament string) error {
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
-		logger.Error("Create event in db error", "repository-createEvent()", err)
+		logger.Error("Error new transaction in create tournaments", "repository-CreateTournament()", err)
 		return err
 	}
-	logger.Debug("Success create event in db", "repository-createEvent()", nil)
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `UPDATE tournaments SET is_active = false WHERE is_active = true`)
+	if err != nil {
+		logger.Error("Error in sql set is_active=false for tournament", "repository-CreateTournament()", err)
+		return err
+	}
+
+	query := `INSERT INTO tournaments(name, is_active) VALUES (@name, true)`
+	args := pgx.NamedArgs{
+		"name": name_tournament,
+	}
+	_, err = tx.Exec(ctx, query, args)
+	if err != nil {
+		logger.Error("Error in sql insert new tournament", "repository-CreateTournament()", err)
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		logger.Error("Error commit tx", "repository-CreateTournament()", err)
+		return err
+	}
+
+	logger.Debug("Success create new tournament", "repository-CreateTournament()", nil)
 	return nil
 }
 
-func (r *mainRepository) AddResultToEvent(ctx context.Context, result string) error {
-	query := `INSERT INTO current_event(result) VALUES (@result)`
+func (r *mainRepository) CreateMatch(ctx context.Context, match *model.Match) error {
+
+	query := `WITH t AS (
+    	SELECT id FROM tournaments WHERE is_active = true LIMIT 1
+	)
+	INSERT INTO matches (tournament_id, name, team_1, team_2, date)
+	SELECT t.id, @name, @team1, @team2, @date
+	FROM t`
 	args := pgx.NamedArgs{
-		"result": result,
+		"name":  match.Name,
+		"team1": match.Team1,
+		"team2": match.Team2,
+		"date":  match.Date,
+	}
+	_, err := r.db.Exec(ctx, query, args)
+	if err != nil {
+		logger.Error("Create match in db error", "repository-createEvent()", err)
+		return err
+	}
+	logger.Debug("Success create match in db", "repository-createEvent()", nil)
+	return nil
+}
+
+func (r *mainRepository) AddMatchResult(ctx context.Context, result string, match_id int) error {
+	query := `UPDATE matches
+				SET result = @result
+				WHERE id = @match_id;`
+	args := pgx.NamedArgs{
+		"result":   result,
+		"match_id": match_id,
 	}
 	_, err := r.db.Exec(ctx, query, args)
 	if err != nil {
@@ -52,54 +94,61 @@ func (r *mainRepository) AddResultToEvent(ctx context.Context, result string) er
 	return nil
 }
 
-func (r *mainRepository) GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, error) {
-	query := `SELECT 
-    			cp.username,
-   				ce.name,
-    			cp.prediction,
-    			ce.result,
-   				ce.date
-			FROM current_event AS ce
-			INNER JOIN current_predictions AS cp 
-    			ON ce.id = cp.id_event
-			INNER JOIN telegram_users AS tu
-    			ON cp.username = tu.chat_id
-			WHERE tu.is_active = true`
+func (r *mainRepository) GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, error) {
+
+	query := `SELECT
+    			tu.username,
+    			m.name AS match_name,
+   				p.prediction,
+    			m.result,
+    			m.date
+			FROM predictions p
+			JOIN telegram_users tu ON p.username = tu.username
+			JOIN matches m ON p.match_id = m.id
+			JOIN tournaments t ON m.tournament_id = t.id
+			WHERE tu.is_active = true
+				AND t.is_active = true`
 
 	sqlRows, err := r.db.Query(ctx, query)
 	if err != nil {
-		logger.Error("Get finish table in db error", "repository-getEventFinishTable()", err)
+		logger.Error("Get finish table in db error", "repository-getTournamentFinishTable()", err)
 		return nil, err
 	}
 	defer sqlRows.Close()
 
-	logger.Debug("Success get sql rows for finish table in db", "repository-getEventFinishTable()", nil)
+	logger.Debug("Success get sql rows for finish table in db", "repository-getTournamentFinishTable()", nil)
 
-	finishTables := []model.EventFinishTable{}
+	finishTables := []model.TournamentFinishTable{}
 	for sqlRows.Next() {
-		finishTable := model.EventFinishTable{}
-		err := sqlRows.Scan(&finishTable.Username, &finishTable.Name_match, &finishTable.User_prediction, &finishTable.Result_match, &finishTable.Date_match)
+		finishTable := model.TournamentFinishTable{}
+		err := sqlRows.Scan(&finishTable.Username, &finishTable.Match_name, &finishTable.User_prediction, &finishTable.Match_result, &finishTable.Match_date)
 		if err != nil {
-			logger.Error("Scan finish table in db error", "repository-getEventFinishTable()", err)
+			logger.Error("Scan finish table in db error", "repository-getTournamentFinishTable()", err)
 			return nil, err
 		}
 		finishTables = append(finishTables, finishTable)
 	}
 
-	logger.Debug("Success get finish table in db", "repository-getEventFinishTable()", nil)
-	return finishTables, nil
+	logger.Debug("Success get finish table in db", "repository-getTournamentFinishTable()", nil)
+	return &finishTables, nil
 }
 
 // USER
 
-func (r *mainRepository) GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error) {
-	query := `SELECT current_event.name, current_predictions.prediction
-			FROM current_predictions AS current_predictions
-				LEFT JOIN current_event ON
-					current_predictions.id_event = current_event.id
+func (r *mainRepository) GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error) {
+
+	query := `SELECT
+				m.name AS match_name,
+				p.prediction			
+			FROM predictions p
+			JOINT matches m ON p.match_id = m.id
 			WHERE
-				current_predictions.username = $1`
-	sqlRows, err := r.db.Query(ctx, query, username)
+				p.username = @username`
+	args := pgx.NamedArgs{
+		"username": username,
+	}
+
+	sqlRows, err := r.db.Query(ctx, query, args)
 	if err != nil {
 		logger.Error("Get user predictions in db error", "repository-getUserPredictions()", err)
 		return nil, err
@@ -111,7 +160,7 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 	predictions := []model.UserPrediction{}
 	for sqlRows.Next() {
 		prediction := model.UserPrediction{}
-		err := sqlRows.Scan(&prediction.NameEvent, &prediction.Prediction)
+		err := sqlRows.Scan(&prediction.Match_Name, &prediction.Prediction)
 		if err != nil {
 			logger.Error("Scan prediction in db error", "repository-getUserPredictions()", err)
 			return nil, err
@@ -120,14 +169,19 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 	}
 
 	logger.Debug("Success get user predictions in db", "repository-getUserPredictions()", nil)
-	return predictions, nil
+	return &predictions, nil
 }
 
 func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error {
-	query := `INSERT INTO current_predictions(username, id_event, prediction) VALUES (@username, @id_event, @prediction)`
+
+	query := `INSERT INTO predictions (username, match_id, prediction)
+				SELECT @username, @match_id, @prediction
+				WHERE NOT EXISTS (
+    				SELECT 1 FROM predictions WHERE username = @username AND match_id = @match_id
+				);`
 	args := pgx.NamedArgs{
-		"username":   prediction.UserName,
-		"id_event":   prediction.Id_event,
+		"username":   prediction.Username,
+		"match_id":   prediction.Match_id,
 		"prediction": prediction.Prediction,
 	}
 	_, err := r.db.Exec(ctx, query, args)

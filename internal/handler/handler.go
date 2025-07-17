@@ -13,13 +13,14 @@ type Handler struct {
 }
 
 type Service interface {
-	Start(ctx context.Context, user *model.User) error
-	Stop(ctx context.Context, chat_id int64) error
-	CreateEvent(ctx context.Context, event model.Event) error
-	AddResultToEvent(ctx context.Context, result string) error
-	GetEventFinishTable(ctx context.Context) ([]model.EventFinishTable, model.ScoreFinishTable, error)
-	GetUserPredictions(ctx context.Context, username string) ([]model.UserPrediction, error)
+	CreateTournament(ctx context.Context, name_tournament string) error
+	CreateMatch(ctx context.Context, match *model.Match) error
+	AddMatchResult(ctx context.Context, result string, match_id int) error
+	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, *model.ScoreFinishTable, error)
+	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
+	AddNewUser(ctx context.Context, user *model.User) error
+	DeactivateUser(ctx context.Context, chat_id int64) error
 }
 
 func NewHandler(s Service) *Handler {
@@ -32,16 +33,16 @@ func (h *Handler) Start(user *model.User, ctx context.Context) {
 	msg := tgbotapi.NewMessage(user.Chat_id, "Привет, это бот для ставок на КС2, lets go")
 	_, err := h.BotApi.Send(msg)
 	if err == nil {
-		h.Service.Start(ctx, user)
+		h.Service.AddNewUser(ctx, user)
 	} else {
-		h.Service.Stop(ctx, user.Chat_id)
+		h.Service.DeactivateUser(ctx, user.Chat_id)
 	}
 }
 
 func (h *Handler) Stop(user *model.User, ctx context.Context) {
 	msg := tgbotapi.NewMessage(user.Chat_id, "gg, ты больше не участник, так даже лучше, лузеры нам не нужны")
 	h.BotApi.Send(msg)
-	h.Service.Stop(ctx, user.Chat_id)
+	h.Service.DeactivateUser(ctx, user.Chat_id)
 }
 
 func (h *Handler) CreateEvent(user *model.User, ctx context.Context) {

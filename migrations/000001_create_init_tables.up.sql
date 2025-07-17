@@ -13,21 +13,21 @@ CREATE TABLE IF NOT EXISTS matches (
    result VARCHAR(5) -- например: '2-1'
 );
 
-CREATE TABLE IF NOT EXISTS tournament(
+CREATE TABLE IF NOT EXISTS tournaments (
    id serial PRIMARY KEY,
    name VARCHAR (300) NOT NULL,
    is_active BOOLEAN
 );
 
-CREATE TABLE IF NOT EXISTS predictions(
-   username TEXT NOT NULL REFERENCES telegram_users(chat_id),
+CREATE TABLE IF NOT EXISTS predictions (
+   username TEXT NOT NULL REFERENCES telegram_users(username),
    match_id INT REFERENCES matches(id),
    prediction VARCHAR (5) NOT NULL -- например: '2-1' или "1"
 );
 
 CREATE TABLE IF NOT EXISTS telegram_users (
    chat_id BIGINT PRIMARY KEY,
-   username TEXT,
+   username TEXT UNIQUE,
    first_name TEXT,
    last_name TEXT,
    is_active BOOLEAN DEFAULT true,
