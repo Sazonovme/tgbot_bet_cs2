@@ -107,7 +107,8 @@ func (r *mainRepository) GetTournamentFinishTable(ctx context.Context) (*[]model
 			JOIN matches m ON p.match_id = m.id
 			JOIN tournaments t ON m.tournament_id = t.id
 			WHERE tu.is_active = true
-				AND t.is_active = true`
+				AND t.is_active = true
+			ORDER BY m.date ASC`
 
 	sqlRows, err := r.db.Query(ctx, query)
 	if err != nil {
