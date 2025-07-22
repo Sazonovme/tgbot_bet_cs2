@@ -58,20 +58,22 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 		userData := PrepareUserData(update)
 
 		switch {
-		case update.Message.Text == "/start":
-			a.Handler.Start(userData, ctx)
-		case update.Message.Text == "/stop":
-			a.Handler.Stop(userData, ctx)
-		case update.Message.Text == "/create-event":
-			a.Handler.CreateEvent(userData, ctx)
-		case update.Message.Text == "/add-result":
-			a.Handler.AddResult(userData, ctx)
-		case update.Message.Text == "/finish-tournament":
-			a.Handler.FinishTournament(userData, ctx)
-		case update.Message.Text == "/my-predictions":
-			a.Handler.MyPredictions(userData, ctx)
+		case userData.TextMsg == "/create-tournament":
+			a.Handler.CreateTournament(ctx, userData)
+		case userData.TextMsg == "/create-match":
+			a.Handler.CreateMatch(ctx, userData)
+		case userData.TextMsg == "/add-result":
+			a.Handler.AddMatchResult(ctx, userData)
+		case userData.TextMsg == "/finish-tournament":
+			a.Handler.FinishTournament(ctx, userData)
+		case userData.TextMsg == "/my-predictions":
+			a.Handler.MyPredictions(ctx, userData)
 		case strings.Contains(update.Message.Text, "/match"):
-			a.Handler.MakePrediction(userData, ctx)
+			a.Handler.MakePrediction(ctx, userData)
+		case userData.TextMsg == "/start":
+			a.Handler.Start(ctx, userData)
+		case userData.TextMsg == "/stop":
+			a.Handler.Stop(ctx, userData)
 		}
 	}
 }

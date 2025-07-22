@@ -17,6 +17,11 @@ type Match struct {
 	Team2 string
 }
 
+type Result struct {
+	Match_id int
+	Result   string
+}
+
 type UserPrediction struct {
 	Match_Name string
 	Username   string

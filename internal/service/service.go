@@ -4,7 +4,10 @@ import (
 	"RushBananaBet/internal/model"
 	"RushBananaBet/pkg/logger"
 	"context"
+	"errors"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Service struct {
@@ -13,8 +16,8 @@ type Service struct {
 
 type Repository interface {
 	CreateTournament(ctx context.Context, name_tournament string) error
-	CreateMatch(ctx context.Context, match *model.Match) error
-	AddMatchResult(ctx context.Context, result string, match_id int) error
+	CreateMatch(ctx context.Context, matches *[]model.Match) error
+	AddMatchResult(ctx context.Context, results *[]model.Result) error
 	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
@@ -30,16 +33,62 @@ func NewService(repo Repository) *Service {
 
 // ADMIN
 
-func (s *Service) CreateTournament(ctx context.Context, name_tournament string) error {
-	return s.Repository.CreateTournament(ctx, name_tournament)
+func (s *Service) CreateTournament(ctx context.Context, userData *model.User) error {
+	args := strings.Split(userData.TextMsg, " ")
+	return s.Repository.CreateTournament(ctx, args[1])
 }
 
-func (s *Service) CreateMatch(ctx context.Context, match *model.Match) error {
-	return s.Repository.CreateMatch(ctx, match)
+func (s *Service) CreateMatch(ctx context.Context, userData *model.User) error {
+	matches := []model.Match{}
+	args := strings.Split(userData.TextMsg, " ")
+	matches_string_array := strings.Split(args[1], "#")
+
+	for _, val := range matches_string_array {
+		match_arr := strings.Split(val, "_")
+		teams_arr := strings.Split(match_arr[0], "vs")
+
+		date_match, err := time.Parse("02.01.2006 03:04", match_arr[1])
+		if err != nil {
+			logger.Error("Err parse time in create match", "service-CreateMatch()", err)
+			continue
+		}
+
+		matches = append(matches, model.Match{
+			Name:  match_arr[0],
+			Date:  date_match,
+			Team1: teams_arr[0],
+			Team2: teams_arr[1],
+		})
+	}
+
+	if len(matches) < 1 {
+		return errors.New("error parse matches")
+	}
+
+	return s.Repository.CreateMatch(ctx, &matches)
 }
 
-func (s *Service) AddMatchResult(ctx context.Context, result string, match_id int) error {
-	return s.Repository.AddMatchResult(ctx, result, match_id)
+func (s *Service) AddMatchResult(ctx context.Context, userData *model.User) error {
+	results := []model.Result{}
+	args := strings.Split(userData.TextMsg, " ")
+	result_string_array := strings.Split(args[1], "#")
+
+	for _, val := range result_string_array {
+		result_arr := strings.Split(val, "_")
+		match_id, err := strconv.Atoi(result_arr[0])
+
+		if err != nil {
+			logger.Error("Err convert string match_id to int", "service-AddMatchResult()", err)
+			continue
+		}
+
+		results = append(results, model.Result{
+			Match_id: match_id,
+			Result:   result_arr[1],
+		})
+	}
+
+	return s.Repository.AddMatchResult(ctx, &results)
 }
 
 func (s *Service) GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, *model.ScoreFinishTable, error) {
@@ -89,8 +138,21 @@ func (s *Service) GetUserPredictions(ctx context.Context, username string) (*[]m
 	return s.Repository.GetUserPredictions(ctx, username)
 }
 
-func (s *Service) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error {
-	return s.Repository.AddUserPrediction(ctx, prediction)
+func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User) error {
+
+	args := strings.Split(userData.TextMsg, " ")
+	match_id, err := strconv.Atoi(args[1])
+	if err != nil {
+		logger.Error("Err to convert string to int", "service - AddUserPrediction()", err)
+		return err
+	}
+
+	prediction := model.UserPrediction{
+		Match_id:   uint(match_id),
+		Prediction: args[2],
+	}
+
+	return s.Repository.AddUserPrediction(ctx, &prediction)
 }
 
 // GENERAL

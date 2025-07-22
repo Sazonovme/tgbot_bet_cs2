@@ -13,12 +13,12 @@ type Handler struct {
 }
 
 type Service interface {
-	CreateTournament(ctx context.Context, name_tournament string) error
-	CreateMatch(ctx context.Context, match *model.Match) error
-	AddMatchResult(ctx context.Context, result string, match_id int) error
+	CreateTournament(ctx context.Context, userData *model.User) error
+	CreateMatch(ctx context.Context, userData *model.User) error
+	AddMatchResult(ctx context.Context, userData *model.User) error
 	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, *model.ScoreFinishTable, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
-	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
+	AddUserPrediction(ctx context.Context, userData *model.User) error
 	AddNewUser(ctx context.Context, user *model.User) error
 	DeactivateUser(ctx context.Context, chat_id int64) error
 }
@@ -29,40 +29,53 @@ func NewHandler(s Service) *Handler {
 	}
 }
 
-func (h *Handler) Start(user *model.User, ctx context.Context) {
-	msg := tgbotapi.NewMessage(user.Chat_id, "Привет, это бот для ставок на КС2, lets go")
-	_, err := h.BotApi.Send(msg)
+func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
+	err := middlewareAuth(h.BotApi, userData)
 	if err == nil {
-		h.Service.AddNewUser(ctx, user)
-	} else {
-		h.Service.DeactivateUser(ctx, user.Chat_id)
+		h.Service.CreateTournament(ctx, userData)
 	}
 }
 
-func (h *Handler) Stop(user *model.User, ctx context.Context) {
-	msg := tgbotapi.NewMessage(user.Chat_id, "gg, ты больше не участник, так даже лучше, лузеры нам не нужны")
-	h.BotApi.Send(msg)
-	h.Service.DeactivateUser(ctx, user.Chat_id)
+func (h *Handler) CreateMatch(ctx context.Context, userData *model.User) {
+	err := middlewareAuth(h.BotApi, userData)
+	if err == nil {
+		h.Service.CreateMatch(ctx, userData)
+	}
 }
 
-func (h *Handler) CreateEvent(user *model.User, ctx context.Context) {
-
+func (h *Handler) AddMatchResult(ctx context.Context, userData *model.User) {
+	err := middlewareAuth(h.BotApi, userData)
+	if err == nil {
+		h.Service.AddMatchResult(ctx, userData)
+	}
 }
 
-func (h *Handler) AddResult(user *model.User, ctx context.Context) {
-
+func (h *Handler) FinishTournament(ctx context.Context, userData *model.User) {
+	err := middlewareAuth(h.BotApi, userData)
+	if err == nil {
+		h.Service.GetTournamentFinishTable(ctx)
+	}
 }
 
-func (h *Handler) FinishTournament(user *model.User, ctx context.Context) {
-
+func (h *Handler) MyPredictions(ctx context.Context, userData *model.User) {
+	h.Service.GetUserPredictions(ctx, userData.Username)
 }
 
-func (h *Handler) MyPredictions(user *model.User, ctx context.Context) {
-
+func (h *Handler) MakePrediction(ctx context.Context, userData *model.User) {
+	h.Service.AddUserPrediction(ctx, userData)
 }
 
-func (h *Handler) MakePrediction(user *model.User, ctx context.Context) {
+func (h *Handler) Start(ctx context.Context, userData *model.User) {
+	err := h.Service.AddNewUser(ctx, userData)
+	err2 := sendMsg(h.BotApi, userData.Chat_id, "Привет, теперь ты участник закрытого клуба петушков")
+	if err != nil || err2 != nil {
+		h.Service.DeactivateUser(ctx, userData.Chat_id)
+	}
+}
 
+func (h *Handler) Stop(ctx context.Context, userData *model.User) {
+	sendMsg(h.BotApi, userData.Chat_id, "gg, ты больше не участник, так даже лучше, ТАКИЕ лохопеды нам не нужны")
+	h.Service.DeactivateUser(ctx, userData.Chat_id)
 }
 
 // func BuildKeyboard(username string) tgbotapi.ReplyKeyboardMarkup {

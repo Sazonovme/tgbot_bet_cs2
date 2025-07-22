@@ -4,6 +4,9 @@ import (
 	"RushBananaBet/internal/model"
 	"RushBananaBet/pkg/logger"
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -54,21 +57,32 @@ func (r *mainRepository) CreateTournament(ctx context.Context, name_tournament s
 	return nil
 }
 
-func (r *mainRepository) CreateMatch(ctx context.Context, match *model.Match) error {
+func (r *mainRepository) CreateMatch(ctx context.Context, matches *[]model.Match) error {
 
-	query := `WITH t AS (
-    	SELECT id FROM tournaments WHERE is_active = true LIMIT 1
+	if len(*matches) == 0 {
+		return errors.New("match array is clear")
+	}
+
+	valueStrings := make([]string, 0, len(*matches))
+	valueArgs := make([]interface{}, 0, len(*matches)*4)
+	for i, match := range *matches {
+		n := i * 4
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", n+1, n+2, n+3, n+4))
+		valueArgs = append(valueArgs, match.Name, match.Team1, match.Team2, match.Date)
+	}
+
+	query := fmt.Sprintf(`
+	WITH t AS (
+		SELECT id FROM tournaments WHERE is_active = true LIMIT 1
+	),
+	match_data(name, team_1, team_2, date) AS (
+		VALUES %s
 	)
 	INSERT INTO matches (tournament_id, name, team_1, team_2, date)
-	SELECT t.id, @name, @team1, @team2, @date
-	FROM t`
-	args := pgx.NamedArgs{
-		"name":  match.Name,
-		"team1": match.Team1,
-		"team2": match.Team2,
-		"date":  match.Date,
-	}
-	_, err := r.db.Exec(ctx, query, args)
+	SELECT t.id, m.name, m.team_1, m.team_2, m.date
+	FROM t, match_data m`, strings.Join(valueStrings, ","))
+
+	_, err := r.db.Exec(ctx, query, valueArgs...)
 	if err != nil {
 		logger.Error("Create match in db error", "repository-createEvent()", err)
 		return err
@@ -77,20 +91,36 @@ func (r *mainRepository) CreateMatch(ctx context.Context, match *model.Match) er
 	return nil
 }
 
-func (r *mainRepository) AddMatchResult(ctx context.Context, result string, match_id int) error {
-	query := `UPDATE matches
-				SET result = @result
-				WHERE id = @match_id;`
-	args := pgx.NamedArgs{
-		"result":   result,
-		"match_id": match_id,
+func (r *mainRepository) AddMatchResult(ctx context.Context, results *[]model.Result) error {
+
+	if len(*results) == 0 {
+		return errors.New("result array is clear")
 	}
-	_, err := r.db.Exec(ctx, query, args)
+
+	valueStrings := make([]string, 0, len(*results))
+	valueArgs := make([]interface{}, 0, len(*results)*2)
+
+	for i, r := range *results {
+		n := i * 2
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d)", n+1, n+2))
+		valueArgs = append(valueArgs, r.Match_id, r.Result)
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE matches AS m
+		SET result = v.result
+		FROM (
+			VALUES %s
+		) AS v(id, result)
+		WHERE m.id = v.id;
+	`, strings.Join(valueStrings, ","))
+
+	_, err := r.db.Exec(ctx, query, valueArgs...)
 	if err != nil {
-		logger.Error("Add result to event in db error", "repository-addResultToEvent()", err)
+		logger.Error("Add result to match in db error", "repository-AddMatchResult()", err)
 		return err
 	}
-	logger.Debug("Success add result in db", "repository-addResultToEvent()", nil)
+	logger.Debug("Success add result match in db", "repository-AddMatchResult()", nil)
 	return nil
 }
 
