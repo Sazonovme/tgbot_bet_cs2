@@ -21,7 +21,7 @@ type Repository interface {
 	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
-	AddNewUser(ctx context.Context, user *model.User) error
+	AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool)
 	DeactivateUser(ctx context.Context, chat_id int64) error
 }
 
@@ -157,7 +157,7 @@ func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User) e
 
 // GENERAL
 
-func (s *Service) AddNewUser(ctx context.Context, user *model.User) error {
+func (s *Service) AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool) {
 	return s.Repository.AddNewUser(ctx, user)
 }
 

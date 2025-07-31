@@ -52,28 +52,49 @@ func (a *App) StartPolling() {
 }
 
 func (a *App) RouteUpdate(update tgbotapi.Update) {
-	if update.Message != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		userData := PrepareUserData(update)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// === Inline-кнопки (CallbackQuery) ===
+	if update.CallbackQuery != nil {
+		callback := update.CallbackQuery
+		userData := PrepareUserDataFromCallback(callback)
 
 		switch {
-		case userData.TextMsg == "/create-tournament":
+		case strings.HasPrefix(callback.Data, "create_tournament"):
 			a.Handler.CreateTournament(ctx, userData)
-		case userData.TextMsg == "/create-match":
+		case strings.HasPrefix(callback.Data, "create_match"):
 			a.Handler.CreateMatch(ctx, userData)
-		case userData.TextMsg == "/add-result":
+		case strings.HasPrefix(callback.Data, "add_result"):
 			a.Handler.AddMatchResult(ctx, userData)
-		case userData.TextMsg == "/finish-tournament":
+		case strings.HasPrefix(callback.Data, "finish_tournament"):
 			a.Handler.FinishTournament(ctx, userData)
-		case userData.TextMsg == "/my-predictions":
+		case strings.HasPrefix(callback.Data, "my_predictions"):
 			a.Handler.MyPredictions(ctx, userData)
-		case strings.Contains(update.Message.Text, "/match"):
+		case strings.HasPrefix(callback.Data, "match_"):
 			a.Handler.MakePrediction(ctx, userData)
-		case userData.TextMsg == "/start":
+		case strings.HasPrefix(callback.Data, "bet_"):
+			a.Handler.HandleBetSelection(ctx, userData, callback)
+		case strings.HasPrefix(callback.Data, "cancel_"):
+			a.Handler.HandleCancel(ctx, userData, callback)
+		default:
+			a.Handler.UnknownCallback(ctx, userData, callback)
+		}
+		return
+
+	} else if update.Message != nil {
+
+		userData := PrepareUserData(update)
+
+		// === Обычные команды ===
+		switch userData.TextMsg {
+		case "/start":
 			a.Handler.Start(ctx, userData)
-		case userData.TextMsg == "/stop":
+		case "/stop":
 			a.Handler.Stop(ctx, userData)
+		default:
+			a.Handler.UnknownCommand(ctx, userData)
 		}
 	}
 }
@@ -85,5 +106,15 @@ func PrepareUserData(update tgbotapi.Update) *model.User {
 		First_name: update.Message.From.FirstName,
 		Last_name:  update.Message.From.LastName,
 		TextMsg:    update.Message.Text,
+	}
+}
+
+func PrepareUserDataFromCallback(callback *tgbotapi.CallbackQuery) *model.User {
+	return &model.User{
+		Chat_id:    callback.Message.Chat.ID,
+		Username:   callback.Message.From.UserName,
+		First_name: callback.Message.From.FirstName,
+		Last_name:  callback.Message.From.LastName,
+		TextMsg:    callback.Message.Text,
 	}
 }

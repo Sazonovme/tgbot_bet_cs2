@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -225,24 +226,30 @@ func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *mode
 	return nil
 }
 
-func (r *mainRepository) AddNewUser(ctx context.Context, user *model.User) error {
+func (r *mainRepository) AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool) {
 	query := `INSERT INTO telegram_users (chat_id, username, first_name, last_name, is_active)
-				VALUES (@chat_id, @username, @first_name, @last_name, true)
-				ON CONFLICT (chat_id) DO UPDATE SET is_active = true`
+				VALUES (@chat_id, @username, @first_name, @last_name, true)`
 	args := pgx.NamedArgs{
 		"chat_id":    user.Chat_id,
 		"username":   user.Username,
 		"first_name": user.First_name,
 		"last_name":  user.Last_name,
 	}
-	_, err := r.db.Exec(ctx, query, args)
+
+	_, err = r.db.Exec(ctx, query, args)
 	if err != nil {
-		logger.Error("Error add new user in db", "repository-AddNewUser()", err)
-		return err
+		if pqErr, ok := err.(*pgconn.PgError); ok {
+			if pqErr.Code == "23505" {
+				return nil, true
+			}
+		} else {
+			logger.Error("Error add new user in db", "repository-AddNewUser()", err)
+			return err, false
+		}
 	}
 
 	logger.Debug("Success add new user in db", "repository-AddNewUser()", nil)
-	return nil
+	return nil, false
 }
 
 func (r *mainRepository) DeactivateUser(ctx context.Context, chat_id int64) error {
