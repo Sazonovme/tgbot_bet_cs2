@@ -1,8 +1,8 @@
 package repository
 
 import (
+	"RushBananaBet/internal/logger"
 	"RushBananaBet/internal/model"
-	"RushBananaBet/pkg/logger"
 	"context"
 	"errors"
 	"fmt"

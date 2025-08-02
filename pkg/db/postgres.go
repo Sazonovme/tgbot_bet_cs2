@@ -1,7 +1,7 @@
 package db
 
 import (
-	"RushBananaBet/pkg/logger"
+	"RushBananaBet/internal/logger"
 	"context"
 	"time"
 

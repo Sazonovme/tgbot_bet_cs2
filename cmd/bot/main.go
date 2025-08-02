@@ -3,11 +3,11 @@ package main
 import (
 	"RushBananaBet/internal/app"
 	"RushBananaBet/internal/handler"
+	"RushBananaBet/internal/logger"
 	user "RushBananaBet/internal/model"
 	"RushBananaBet/internal/repository"
 	"RushBananaBet/internal/service"
 	"RushBananaBet/pkg/db"
-	"RushBananaBet/pkg/logger"
 	"os"
 	"os/signal"
 	"syscall"

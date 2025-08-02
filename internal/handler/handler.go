@@ -1,9 +1,9 @@
 package handler
 
 import (
+	"RushBananaBet/internal/logger"
 	"RushBananaBet/internal/model"
 	"RushBananaBet/internal/ui"
-	"RushBananaBet/pkg/logger"
 	"context"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

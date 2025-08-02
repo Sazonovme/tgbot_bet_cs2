@@ -1,8 +1,8 @@
 package service
 
 import (
+	"RushBananaBet/internal/logger"
 	"RushBananaBet/internal/model"
-	"RushBananaBet/pkg/logger"
 	"context"
 	"errors"
 	"strconv"

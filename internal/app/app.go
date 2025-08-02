@@ -2,8 +2,8 @@ package app
 
 import (
 	"RushBananaBet/internal/handler"
+	"RushBananaBet/internal/logger"
 	"RushBananaBet/internal/model"
-	"RushBananaBet/pkg/logger"
 	"context"
 	"os"
 	"strings"
