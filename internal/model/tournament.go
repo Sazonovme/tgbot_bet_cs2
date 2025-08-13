@@ -11,6 +11,7 @@ type User struct {
 }
 
 type Match struct {
+	Id    int
 	Name  string
 	Date  time.Time
 	Team1 string

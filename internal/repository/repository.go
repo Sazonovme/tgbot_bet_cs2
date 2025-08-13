@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -166,6 +167,45 @@ func (r *mainRepository) GetTournamentFinishTable(ctx context.Context) (*[]model
 }
 
 // USER
+
+func (r *mainRepository) GetActiveMatches(ctx context.Context) (*[]model.Match, error) {
+
+	query := `SELECT
+				id,
+				name,
+				team_1,
+				team_2,
+				date			
+			FROM matches
+			WHERE
+				date > @currentDate`
+	args := pgx.NamedArgs{
+		"currentDate": time.Now().Add(60 * time.Second),
+	}
+
+	sqlRows, err := r.db.Query(ctx, query, args)
+	if err != nil {
+		logger.Error("Get active matches in db error", "repository-GetActiveMatches()", err)
+		return nil, err
+	}
+	defer sqlRows.Close()
+
+	logger.Debug("Success get active matches in db", "repository-GetActiveMatches()", nil)
+
+	activeMatches := []model.Match{}
+	for sqlRows.Next() {
+		activeMatch := model.Match{}
+		err := sqlRows.Scan(&activeMatch.Id, &activeMatch.Name, &activeMatch.Team1, &activeMatch.Team2, &activeMatch.Date)
+		if err != nil {
+			logger.Error("Scan active matches in db error", "repository-GetActiveMatches()", err)
+			return nil, err
+		}
+		activeMatches = append(activeMatches, activeMatch)
+	}
+
+	logger.Debug("Success get active matches in db", "repository-GetActiveMatches()", nil)
+	return &activeMatches, nil
+}
 
 func (r *mainRepository) GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error) {
 

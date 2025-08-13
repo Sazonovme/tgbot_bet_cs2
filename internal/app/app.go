@@ -70,16 +70,18 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 			a.Handler.AddMatchResult(ctx, userData)
 		case strings.HasPrefix(callback.Data, "finish_tournament"):
 			a.Handler.FinishTournament(ctx, userData)
+		case strings.HasPrefix(callback.Data, "active_matches"):
+			a.Handler.GetActiveMatches(ctx, userData)
 		case strings.HasPrefix(callback.Data, "my_predictions"):
 			a.Handler.MyPredictions(ctx, userData)
 		case strings.HasPrefix(callback.Data, "match_"):
 			a.Handler.MakePrediction(ctx, userData)
 		case strings.HasPrefix(callback.Data, "bet_"):
-			a.Handler.HandleBetSelection(ctx, userData, callback)
-		case strings.HasPrefix(callback.Data, "cancel_"):
-			a.Handler.HandleCancel(ctx, userData, callback)
+			a.Handler.HandleBet(ctx, userData, callback)
+		case strings.HasPrefix(callback.Data, "back_to_"):
+			a.Handler.HandleBackTo(ctx, userData, callback)
 		default:
-			a.Handler.UnknownCallback(ctx, userData, callback)
+			a.Handler.UnknownCommand(ctx, userData)
 		}
 		return
 
