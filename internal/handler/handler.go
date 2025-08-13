@@ -41,26 +41,26 @@ func NewHandler(s Service) *Handler {
 }
 
 func (h *Handler) Start(ctx context.Context, userData *model.User) {
-	err, isExist := h.Service.AddNewUser(ctx, userData)
+	err, _ := h.Service.AddNewUser(ctx, userData)
 	if err != nil {
 		logger.Error("Err start()", "handler-Start()", err)
 		return
 	}
-	if !isExist {
-		_, err = sendMsg(h.BotApi, userData.Chat_id, "Привет, теперь ты участник закрытого клуба петушков", tgbotapi.InlineKeyboardMarkup{})
-		if err != nil {
-			h.Service.DeactivateUser(ctx, userData.Chat_id)
-			return
-		}
-		keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
-		msg, err := sendMsg(h.BotApi, userData.Chat_id, "Главное меню:", keyboard)
-		if err != nil {
-			logger.Error("Err start()", "handler-Start()", err)
-			return
-		}
-		UserSessionsMap.Delete(userData.Chat_id)
-		UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "active_matches")
+
+	_, err = sendMsg(h.BotApi, userData.Chat_id, "Привет, теперь ты участник закрытого клуба петушков", tgbotapi.InlineKeyboardMarkup{})
+	if err != nil {
+		h.Service.DeactivateUser(ctx, userData.Chat_id)
+		return
 	}
+	keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
+	msg, err := sendMsg(h.BotApi, userData.Chat_id, "Главное меню:", keyboard)
+	if err != nil {
+		logger.Error("Err start()", "handler-Start()", err)
+		return
+	}
+	UserSessionsMap.Delete(userData.Chat_id)
+	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "active_matches")
+
 }
 
 func (h *Handler) Stop(ctx context.Context, userData *model.User) {
