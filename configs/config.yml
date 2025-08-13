@@ -11,3 +11,9 @@ production: false
 # Список админов
 admins:
   - !!str Sazonovme
+
+# БД конфиг
+user_db: rushbanana_user
+passwordUser_db: secret_password
+name_db: rushbanana_db
+port_db: 5432

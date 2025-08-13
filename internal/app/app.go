@@ -32,7 +32,7 @@ func NewApp(botToken string, handler handler.Handler) App {
 func (a *App) Start(stop chan os.Signal) {
 	logger.Info("Bot started", "app-(*Bot)Start()", nil)
 
-	a.StartPolling()
+	go a.StartPolling()
 
 	<-stop
 	logger.Info("Bot stoped", "app-(*Bot)Start()", nil)
@@ -72,12 +72,14 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 			a.Handler.FinishTournament(ctx, userData)
 		case strings.HasPrefix(callback.Data, "active_matches"):
 			a.Handler.GetActiveMatches(ctx, userData)
+		case strings.HasPrefix(callback.Data, "confirm_prediction"):
+			a.Handler.ConfirmPrediction(ctx, userData)
 		case strings.HasPrefix(callback.Data, "my_predictions"):
 			a.Handler.MyPredictions(ctx, userData)
-		case strings.HasPrefix(callback.Data, "match_"):
+		case strings.HasPrefix(callback.Data, "make_prediction"):
 			a.Handler.MakePrediction(ctx, userData)
-		case strings.HasPrefix(callback.Data, "bet_"):
-			a.Handler.HandleBet(ctx, userData, callback)
+		// case strings.HasPrefix(callback.Data, "bet_"):
+		// 	a.Handler.HandleBet(ctx, userData, callback)
 		case strings.HasPrefix(callback.Data, "back_to_"):
 			a.Handler.HandleBackTo(ctx, userData, callback)
 		default:
@@ -113,10 +115,10 @@ func PrepareUserData(update tgbotapi.Update) *model.User {
 
 func PrepareUserDataFromCallback(callback *tgbotapi.CallbackQuery) *model.User {
 	return &model.User{
-		Chat_id:    callback.Message.Chat.ID,
-		Username:   callback.Message.From.UserName,
-		First_name: callback.Message.From.FirstName,
-		Last_name:  callback.Message.From.LastName,
-		TextMsg:    callback.Message.Text,
+		Chat_id:      callback.Message.Chat.ID,
+		Username:     callback.Message.From.UserName,
+		First_name:   callback.Message.From.FirstName,
+		Last_name:    callback.Message.From.LastName,
+		CallbackData: callback.Data,
 	}
 }

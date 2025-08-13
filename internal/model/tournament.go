@@ -3,11 +3,12 @@ package model
 import "time"
 
 type User struct {
-	Chat_id    int64
-	Username   string
-	First_name string
-	Last_name  string
-	TextMsg    string
+	Chat_id      int64
+	Username     string
+	First_name   string
+	Last_name    string
+	TextMsg      string
+	CallbackData string
 }
 
 type Match struct {

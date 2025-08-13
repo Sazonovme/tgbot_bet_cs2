@@ -8,6 +8,7 @@ import (
 	"RushBananaBet/internal/repository"
 	"RushBananaBet/internal/service"
 	"RushBananaBet/pkg/db"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,12 +30,12 @@ var initData struct {
 func init() {
 	data, err := os.ReadFile("../../configs/config.yml")
 	if err != nil {
-		logger.Fatal("Cant read config", "main-init()", err)
+		fmt.Println("Ошибка в main:", err)
 	}
 
 	err = yaml.Unmarshal(data, &initData)
 	if err != nil {
-		logger.Fatal("Cant unmarshal data from config", "main-init()", err)
+		fmt.Println("Ошибка в main:", err)
 	}
 
 	// Set admins

@@ -6,9 +6,9 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func sendMsg(botAPI *tgbotapi.BotAPI, chat_id int64, text string, keyboard [][]tgbotapi.KeyboardButton) (tgbotapi.Message, error) {
+func sendMsg(botAPI *tgbotapi.BotAPI, chat_id int64, text string, keyboard tgbotapi.InlineKeyboardMarkup) (tgbotapi.Message, error) {
 	msg := tgbotapi.NewMessage(chat_id, text)
-	if keyboard != nil {
+	if len(keyboard.InlineKeyboard) != 0 {
 		msg.ReplyMarkup = keyboard
 	}
 	botMsg, err := botAPI.Send(msg)
@@ -19,33 +19,42 @@ func sendMsg(botAPI *tgbotapi.BotAPI, chat_id int64, text string, keyboard [][]t
 	return botMsg, nil
 }
 
-func deleteMsg(botAPI *tgbotapi.BotAPI, chat_id int64, message_id int) error {
+// func PaintMainMenuWithMessage(botAPI *tgbotapi.BotAPI, userData *model.User, message string) {
+// 	keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
+// 	_, err := sendMsg(botAPI, userData.Chat_id, "Главное меню:", keyboard)
+// 	if err != nil {
+// 		logger.Error("Err start()", "handler-Start()", err)
+// 		return
+// 	}
+// }
 
-	deleteConfig := tgbotapi.DeleteMessageConfig{
-		ChatID:    chat_id,
-		MessageID: message_id,
-	}
+// func deleteMsg(botAPI *tgbotapi.BotAPI, chat_id int64, message_id int) error {
 
-	if _, err := botAPI.Send(deleteConfig); err != nil {
-		logger.Error("Err delete msg", "helpers-deleteMsg()", err)
-		return err
-	}
+// 	deleteConfig := tgbotapi.DeleteMessageConfig{
+// 		ChatID:    chat_id,
+// 		MessageID: message_id,
+// 	}
 
-	return nil
-}
+// 	if _, err := botAPI.Send(deleteConfig); err != nil {
+// 		logger.Error("Err delete msg", "helpers-deleteMsg()", err)
+// 		return err
+// 	}
 
-func deleteKeyboard(botAPI *tgbotapi.BotAPI, chat_id int64, message_id int) error {
-	edit := tgbotapi.NewEditMessageReplyMarkup(
-		chat_id,
-		message_id,
-		tgbotapi.InlineKeyboardMarkup{InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{}},
-	)
+// 	return nil
+// }
 
-	if _, err := botAPI.Send(edit); err != nil {
-		logger.Error("Err delete keyboard", "helpers-deleteKeyboard()", err)
-		return err
-	}
+// func deleteKeyboard(botAPI *tgbotapi.BotAPI, chat_id int64, message_id int) error {
+// 	edit := tgbotapi.NewEditMessageReplyMarkup(
+// 		chat_id,
+// 		message_id,
+// 		tgbotapi.InlineKeyboardMarkup{InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{}},
+// 	)
 
-	return nil
+// 	if _, err := botAPI.Send(edit); err != nil {
+// 		logger.Error("Err delete keyboard", "helpers-deleteKeyboard()", err)
+// 		return err
+// 	}
 
-}
+// 	return nil
+
+// }

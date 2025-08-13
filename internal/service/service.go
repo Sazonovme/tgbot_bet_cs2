@@ -145,8 +145,9 @@ func (s *Service) GetUserPredictions(ctx context.Context, username string) (*[]m
 
 func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User) error {
 
-	args := strings.Split(userData.TextMsg, " ")
-	match_id, err := strconv.Atoi(args[1])
+	// make_prediction_[matchID]_[bet]_[y/n]
+	args := strings.Split(userData.CallbackData, "_")
+	match_id, err := strconv.Atoi(args[2])
 	if err != nil {
 		logger.Error("Err to convert string to int", "service - AddUserPrediction()", err)
 		return err
@@ -154,7 +155,7 @@ func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User) e
 
 	prediction := model.UserPrediction{
 		Match_id:   uint(match_id),
-		Prediction: args[2],
+		Prediction: args[3],
 	}
 
 	return s.Repository.AddUserPrediction(ctx, &prediction)
