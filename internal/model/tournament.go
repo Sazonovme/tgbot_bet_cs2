@@ -29,6 +29,8 @@ type UserPrediction struct {
 	Username   string
 	Match_id   uint
 	Prediction string
+	DateMatch  time.Time
+	Result     string
 }
 
 type TournamentFinishTable struct {

@@ -68,20 +68,20 @@ func (r *mainRepository) CreateMatch(ctx context.Context, matches *[]model.Match
 	valueStrings := make([]string, 0, len(*matches))
 	valueArgs := make([]interface{}, 0, len(*matches)*4)
 	for i, match := range *matches {
-		n := i * 4
-		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d)", n+1, n+2, n+3, n+4))
-		valueArgs = append(valueArgs, match.Name, match.Team1, match.Team2, match.Date)
+		n := i * 5
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, %d)", n+1, n+2, n+3, n+4, n+5))
+		valueArgs = append(valueArgs, match.Name, match.Team1, match.Team2, match.Date, "")
 	}
 
 	query := fmt.Sprintf(`
 	WITH t AS (
 		SELECT id FROM tournaments WHERE is_active = true LIMIT 1
 	),
-	match_data(name, team_1, team_2, date) AS (
+	match_data(name, team_1, team_2, date, result) AS (
 		VALUES %s
 	)
-	INSERT INTO matches (tournament_id, name, team_1, team_2, date)
-	SELECT t.id, m.name, m.team_1, m.team_2, m.date
+	INSERT INTO matches (tournament_id, name, team_1, team_2, date, result)
+	SELECT t.id, m.name, m.team_1, m.team_2, m.date, m.result
 	FROM t, match_data m`, strings.Join(valueStrings, ","))
 
 	_, err := r.db.Exec(ctx, query, valueArgs...)
@@ -211,14 +211,20 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 
 	query := `SELECT
 				m.name AS match_name,
-				p.prediction			
+				p.prediction,
+				m.date,
+				m.result			
 			FROM predictions p
 			JOIN matches m ON p.match_id = m.id
 			WHERE
 				p.username = @username
-				AND m.result IS NULL
-				AND m.date >= NOW()
-			ORDER BY m.date ASC`
+			ORDER BY
+    			CASE 
+       				WHEN m.result <> '' THEN 0           -- сначала матчи с результатом
+        			WHEN m.date < NOW() THEN 1                -- затем прошедшие матчи без результата
+       				ELSE 2                                    -- потом будущие матчи без результата
+				END,
+				m.date ASC`
 	args := pgx.NamedArgs{
 		"username": username,
 	}
@@ -235,7 +241,7 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 	predictions := []model.UserPrediction{}
 	for sqlRows.Next() {
 		prediction := model.UserPrediction{}
-		err := sqlRows.Scan(&prediction.Match_Name, &prediction.Prediction)
+		err := sqlRows.Scan(&prediction.Match_Name, &prediction.Prediction, &prediction.DateMatch, &prediction.Result)
 		if err != nil {
 			logger.Error("Scan prediction in db error", "repository-getUserPredictions()", err)
 			return nil, err

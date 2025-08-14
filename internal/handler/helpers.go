@@ -2,6 +2,7 @@ package handler
 
 import (
 	"RushBananaBet/internal/logger"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -17,6 +18,23 @@ func sendMsg(botAPI *tgbotapi.BotAPI, chat_id int64, text string, keyboard tgbot
 		return botMsg, err
 	}
 	return botMsg, nil
+}
+
+func CalcPointsForBet(prediction string, result string) string {
+	points := "0"
+	if prediction == "1" {
+		if strings.HasPrefix(result, "2") {
+			points = "1"
+		}
+	} else if prediction == "2" {
+		if strings.HasPrefix(result, "0") || strings.HasPrefix(result, "1") {
+			points = "1"
+		}
+	} else if prediction == result {
+		points = "2"
+	}
+
+	return points
 }
 
 // func PaintMainMenuWithMessage(botAPI *tgbotapi.BotAPI, userData *model.User, message string) {

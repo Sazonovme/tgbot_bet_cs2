@@ -7,6 +7,7 @@ import (
 	"RushBananaBet/internal/ui"
 	"context"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -143,7 +144,7 @@ func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
 
 	for _, match := range *matches {
 
-		keyboard := ui.PaintButtonsForBetOnMatch(match.Name, match.Id)
+		keyboard := ui.PaintButtonsForBetOnMatch(match.Name, match.Id, "confirm")
 		msgText := match.Name + "\n" + "Выберите точный счет для команды " + match.Team1 + " или Win для ставки на победу команды"
 		msg, err := sendMsg(h.BotApi, userData.Chat_id, msgText, keyboard)
 		if err != nil {
@@ -223,11 +224,67 @@ func (h *Handler) MakePrediction(ctx context.Context, userData *model.User) {
 }
 
 func (h *Handler) MyPredictions(ctx context.Context, userData *model.User) {
-	// userPredictions, err := h.Service.GetUserPredictions(ctx, userData.Username)
-	// if err != nil {
-	// 	logger.Error("Dont recive user predictions", "handler-MyPredictions()", err)
-	// 	return
-	// }
+
+	// Необходимо построить таблицу матчей
+	// 1. Матчи дата которых уже истекла должны быть без кнопок
+	// 2. Матчи до даты с кнопками
+	// 3. Матчи с результатом должны быть сразу с количеством баллов
+
+	userPredictions, err := h.Service.GetUserPredictions(ctx, userData.Username)
+	if err != nil {
+		logger.Error("Dont recive user predictions", "handler-MyPredictions()", err)
+		return
+	}
+
+	var MessageIDs []int
+
+	for _, prediction := range *userPredictions {
+
+		readablePrediction := ""
+		if prediction.Prediction == "1" || prediction.Prediction == "2" {
+			readablePrediction = "Team " + prediction.Prediction + " win"
+		} else {
+			readablePrediction = prediction.Prediction
+		}
+
+		// Завершенные матчи
+		if prediction.Result != "" {
+			points := CalcPointsForBet(prediction.Prediction, prediction.Result)
+			txtMsg := "✅ Матч завершен ✅" + "\n" + prediction.Match_Name + "\n" + "Счет матча: " + prediction.Result + "\n" + "Твоя ставка: " + readablePrediction + "\n" + "Заработанные баллы: " + points
+			msg, err := sendMsg(h.BotApi, userData.Chat_id, txtMsg, tgbotapi.InlineKeyboardMarkup{})
+			if err != nil {
+				logger.Error("Error send msg", "handler-MyPredictions()", err)
+				return
+			}
+			MessageIDs = append(MessageIDs, msg.MessageID)
+			continue
+		}
+
+		// Текущие матчи
+		if prediction.DateMatch.Before(time.Now()) {
+			txtMsg := "🔴 Текущий матч 🔴" + "\n" + prediction.Match_Name + "\n" + "Твоя ставка: " + readablePrediction
+			msg, err := sendMsg(h.BotApi, userData.Chat_id, txtMsg, tgbotapi.InlineKeyboardMarkup{})
+			if err != nil {
+				logger.Error("Error send msg", "handler-MyPredictions()", err)
+				return
+			}
+			MessageIDs = append(MessageIDs, msg.MessageID)
+			continue
+		}
+
+		// Будущие матчи
+		txtMsg := "🔵 Матч еще не начался 🔵" + "\n" + prediction.Match_Name + "\n" + "Твоя ставка: " + readablePrediction
+		keyboard := ui.PaintButtonsForBetOnMatch(prediction.Match_Name, int(prediction.Match_id), "change")
+		msg, err := sendMsg(h.BotApi, userData.Chat_id, txtMsg, keyboard)
+		if err != nil {
+			logger.Error("Error send msg", "handler-ConfirmPrediction()", err)
+			return
+		}
+		MessageIDs = append(MessageIDs, msg.MessageID)
+	}
+
+	UserSessionsMap.Delete(userData.Chat_id)
+	UserSessionsMap.Set(userData.Chat_id, MessageIDs, "my_predictions")
 }
 
 func (h *Handler) UnknownCommand(ctx context.Context, userData *model.User) {

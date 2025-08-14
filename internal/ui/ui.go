@@ -39,17 +39,17 @@ func PaintMainMenu(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
 	return keyboard
 }
 
-func PaintButtonsForBetOnMatch(matchName string, matchID int) tgbotapi.InlineKeyboardMarkup {
+func PaintButtonsForBetOnMatch(matchName string, matchID int, tagConfirm string) tgbotapi.InlineKeyboardMarkup {
 
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("0️⃣", "confirm_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_0-2"),
-			tgbotapi.NewInlineKeyboardButtonData("1️⃣", "confirm_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1-2"),
-			tgbotapi.NewInlineKeyboardButtonData("2️⃣", "confirm_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2-0"),
+			tgbotapi.NewInlineKeyboardButtonData("0️⃣", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_0-2"),
+			tgbotapi.NewInlineKeyboardButtonData("1️⃣", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1-2"),
+			tgbotapi.NewInlineKeyboardButtonData("2️⃣", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2-0"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 1", "confirm_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1"),
-			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 2", "confirm_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2"),
+			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 1", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1"),
+			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 2", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2"),
 		),
 	)
 }
