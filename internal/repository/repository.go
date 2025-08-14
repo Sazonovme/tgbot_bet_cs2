@@ -213,9 +213,12 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 				m.name AS match_name,
 				p.prediction			
 			FROM predictions p
-			JOINT matches m ON p.match_id = m.id
+			JOIN matches m ON p.match_id = m.id
 			WHERE
-				p.username = @username`
+				p.username = @username
+				AND m.result IS NULL
+				AND m.date >= NOW()
+			ORDER BY m.date ASC`
 	args := pgx.NamedArgs{
 		"username": username,
 	}
