@@ -256,10 +256,9 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error {
 
 	query := `INSERT INTO predictions (username, match_id, prediction)
-				SELECT @username, @match_id, @prediction
-				WHERE NOT EXISTS (
-    				SELECT 1 FROM predictions WHERE username = @username AND match_id = @match_id
-				);`
+				VALUES (@username, @match_id, @prediction)
+				ON CONFLICT (username, match_id)
+				DO UPDATE SET prediction = EXCLUDED.prediction`
 	args := pgx.NamedArgs{
 		"username":   prediction.Username,
 		"match_id":   prediction.Match_id,

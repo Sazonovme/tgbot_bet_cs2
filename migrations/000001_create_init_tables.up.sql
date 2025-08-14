@@ -34,6 +34,9 @@ CREATE TABLE IF NOT EXISTS predictions (
    prediction VARCHAR (5) NOT NULL -- например: '2-1' или "1"
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS unique_prediction 
+ON predictions (username, match_id);
+
 CREATE ROLE rushbanana_user WITH LOGIN PASSWORD 'secret_password';
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO rushbanana_user;

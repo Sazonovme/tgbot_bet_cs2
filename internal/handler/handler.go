@@ -162,6 +162,7 @@ func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
 func (h *Handler) ConfirmPrediction(ctx context.Context, userData *model.User) {
 
 	// confirm_prediction_[matchName]_[matchID]_[bet]
+	// change_prediction_[matchName]_[matchID]_[bet]
 	arr := strings.Split(userData.CallbackData, "_")
 
 	// Расшифровка ставки
@@ -176,9 +177,14 @@ func (h *Handler) ConfirmPrediction(ctx context.Context, userData *model.User) {
 	teams := strings.Split(arr[2], "vs")
 
 	// Итоговое сообщение
-	textMessage := "Матч: " + teams[0] + " vs " + teams[1] + "\n" + "Ваша ставка: " + betTxt + "\n" + "Подтвердить ставку?"
+	textMessage := ""
+	if arr[0] == "confirm" {
+		textMessage = "Матч: " + teams[0] + " vs " + teams[1] + "\n" + "Ваша ставка: " + betTxt + "\n" + "Подтвердить ставку?"
+	} else {
+		textMessage = "Изменение ставки\n" + "Матч: " + teams[0] + " vs " + teams[1] + "\n" + "Новая ставка: " + betTxt + "\n" + "Подтвердить?"
+	}
 
-	keyboard := ui.PaintConfirmForm(arr[2], arr[3])
+	keyboard := ui.PaintConfirmForm(arr[2], arr[3], arr[0])
 
 	msg, err := sendMsg(h.BotApi, userData.Chat_id, textMessage, keyboard)
 	if err != nil {
@@ -193,9 +199,13 @@ func (h *Handler) ConfirmPrediction(ctx context.Context, userData *model.User) {
 func (h *Handler) MakePrediction(ctx context.Context, userData *model.User) {
 
 	// make_prediction_[matchID]_[bet]_[y/n]
+	// change_prediction_[matchID]_[bet]_[y/n]
 	arr := strings.Split(userData.CallbackData, "_")
-	if arr[4] == "n" {
+	if arr[4] == "n" && arr[0] == "make" {
 		h.GetActiveMatches(ctx, userData)
+		return
+	} else if arr[4] == "n" && arr[0] == "change" {
+		h.MyPredictions(ctx, userData)
 		return
 	}
 
@@ -206,7 +216,11 @@ func (h *Handler) MakePrediction(ctx context.Context, userData *model.User) {
 	}
 
 	// Переводим в главное меню
-	_, err = sendMsg(h.BotApi, userData.Chat_id, "✅ Ставка успешно сделана ✅", tgbotapi.InlineKeyboardMarkup{})
+	if arr[0] == "make" {
+		_, err = sendMsg(h.BotApi, userData.Chat_id, "✅ Ставка успешно сделана ✅", tgbotapi.InlineKeyboardMarkup{})
+	} else if arr[0] == "change" {
+		_, err = sendMsg(h.BotApi, userData.Chat_id, "✅ Ставка успешно изменена ✅", tgbotapi.InlineKeyboardMarkup{})
+	}
 	if err != nil {
 		logger.Error("Err send msg", "handler-MakePrediction()", err)
 		return

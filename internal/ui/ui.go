@@ -39,26 +39,26 @@ func PaintMainMenu(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
 	return keyboard
 }
 
-func PaintButtonsForBetOnMatch(matchName string, matchID int, tagConfirm string) tgbotapi.InlineKeyboardMarkup {
+func PaintButtonsForBetOnMatch(matchName string, matchID int, tag string) tgbotapi.InlineKeyboardMarkup {
 
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("0️⃣", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_0-2"),
-			tgbotapi.NewInlineKeyboardButtonData("1️⃣", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1-2"),
-			tgbotapi.NewInlineKeyboardButtonData("2️⃣", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2-0"),
+			tgbotapi.NewInlineKeyboardButtonData("0️⃣", tag+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_0-2"),
+			tgbotapi.NewInlineKeyboardButtonData("1️⃣", tag+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1-2"),
+			tgbotapi.NewInlineKeyboardButtonData("2️⃣", tag+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2-0"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 1", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1"),
-			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 2", tagConfirm+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2"),
+			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 1", tag+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_1"),
+			tgbotapi.NewInlineKeyboardButtonData("🎯 Win team 2", tag+"_prediction_"+matchName+"_"+strconv.Itoa(matchID)+"_2"),
 		),
 	)
 }
 
-func PaintConfirmForm(bet string, matchID string) tgbotapi.InlineKeyboardMarkup {
+func PaintConfirmForm(bet string, matchID string, tag string) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("✅ Да", "make_prediction_"+matchID+"_"+bet+"_y"),
-			tgbotapi.NewInlineKeyboardButtonData("❌ Отмена", "make_prediction_"+matchID+"_"+bet+"_n"),
+			tgbotapi.NewInlineKeyboardButtonData("✅ Да", tag+"_prediction_"+matchID+"_"+bet+"_y"),
+			tgbotapi.NewInlineKeyboardButtonData("❌ Отмена", tag+"_prediction_"+matchID+"_"+bet+"_n"),
 		),
 	)
 }
