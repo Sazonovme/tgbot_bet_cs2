@@ -66,7 +66,11 @@ func (h *Handler) Start(ctx context.Context, userData *model.User) {
 
 func (h *Handler) Stop(ctx context.Context, userData *model.User) {
 	sendMsg(h.BotApi, userData.Chat_id, "gg, ты больше не участник, так даже лучше, ТАКИЕ писькотрясы нам не нужны", tgbotapi.InlineKeyboardMarkup{})
-	h.Service.DeactivateUser(ctx, userData.Chat_id)
+	err := h.Service.DeactivateUser(ctx, userData.Chat_id)
+	if err != nil {
+		logger.Error("Err create tournament", "handler-Stop()", err)
+		return
+	}
 }
 
 func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
@@ -299,6 +303,25 @@ func (h *Handler) MyPredictions(ctx context.Context, userData *model.User) {
 
 	UserSessionsMap.Delete(userData.Chat_id)
 	UserSessionsMap.Set(userData.Chat_id, MessageIDs, "my_predictions")
+}
+
+func (h *Handler) Help(ctx context.Context, userData *model.User) {
+	isAdmin := model.IsAdmin(userData.Username)
+	if !isAdmin {
+		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
+		return
+	}
+
+	txtMsg :=
+		`/create_tournament nameTournament
+	/create_match name_date#name_date#
+	/add_result matchid_result#matchid_result
+	/finish_tournament`
+	sendMsg(h.BotApi, userData.Chat_id, txtMsg, tgbotapi.InlineKeyboardMarkup{})
+}
+
+func (h *Handler) GetMatchesIDs(ctx context.Context, userData *model.User) {
+
 }
 
 func (h *Handler) UnknownCommand(ctx context.Context, userData *model.User) {

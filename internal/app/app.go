@@ -62,14 +62,6 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 		userData := PrepareUserDataFromCallback(callback)
 
 		switch {
-		case strings.HasPrefix(callback.Data, "create_tournament"):
-			a.Handler.CreateTournament(ctx, userData)
-		case strings.HasPrefix(callback.Data, "create_match"):
-			a.Handler.CreateMatch(ctx, userData)
-		case strings.HasPrefix(callback.Data, "add_result"):
-			a.Handler.AddMatchResult(ctx, userData)
-		case strings.HasPrefix(callback.Data, "finish_tournament"):
-			a.Handler.FinishTournament(ctx, userData)
 		case strings.HasPrefix(callback.Data, "active_matches"):
 			a.Handler.GetActiveMatches(ctx, userData)
 		case strings.HasPrefix(callback.Data, "confirm_prediction"):
@@ -97,6 +89,16 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 			a.Handler.Start(ctx, userData)
 		case "/stop":
 			a.Handler.Stop(ctx, userData)
+		case "/create_tournament":
+			a.Handler.CreateTournament(ctx, userData)
+		case "/create_match":
+			a.Handler.CreateMatch(ctx, userData)
+		case "/add_result":
+			a.Handler.AddMatchResult(ctx, userData)
+		case "/finish_tournament":
+			a.Handler.FinishTournament(ctx, userData)
+		case "/help":
+			a.Handler.Help(ctx, userData)
 		default:
 			a.Handler.UnknownCommand(ctx, userData)
 		}
