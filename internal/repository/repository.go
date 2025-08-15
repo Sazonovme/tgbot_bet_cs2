@@ -166,6 +166,40 @@ func (r *mainRepository) GetTournamentFinishTable(ctx context.Context) (*[]model
 	return &finishTables, nil
 }
 
+func (r *mainRepository) GetMatchesIDs(ctx context.Context) (*[]model.Match, error) {
+
+	query := `SELECT
+    			id,
+    			name,
+   				date
+			FROM matches
+			WHERE result = ''
+			ORDER BY date ASC`
+
+	sqlRows, err := r.db.Query(ctx, query)
+	if err != nil {
+		logger.Error("Get matches IDs in db error", "repository-GetMatchesIDs()", err)
+		return nil, err
+	}
+	defer sqlRows.Close()
+
+	logger.Debug("Success get sql rows match IDs in db", "repository-GetMatchesIDs()", nil)
+
+	finishArr := []model.Match{}
+	for sqlRows.Next() {
+		elem := model.Match{}
+		err := sqlRows.Scan(&elem.Id, &elem.Name, &elem.Date)
+		if err != nil {
+			logger.Error("Scan match IDs in db error", "repository-GetMatchesIDs()", err)
+			return nil, err
+		}
+		finishArr = append(finishArr, elem)
+	}
+
+	logger.Debug("Success get match IDs in db", "repository-GetMatchesIDs()", nil)
+	return &finishArr, nil
+}
+
 // USER
 
 func (r *mainRepository) GetActiveMatches(ctx context.Context) (*[]model.Match, error) {

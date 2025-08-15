@@ -19,6 +19,7 @@ type Repository interface {
 	CreateMatch(ctx context.Context, matches *[]model.Match) error
 	AddMatchResult(ctx context.Context, results *[]model.Result) error
 	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, error)
+	GetMatchesIDs(ctx context.Context) (*[]model.Match, error)
 	GetActiveMatches(ctx context.Context) (*[]model.Match, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
@@ -131,6 +132,10 @@ func (s *Service) GetTournamentFinishTable(ctx context.Context) (*[]model.Tourna
 	}
 
 	return &tournamentFinishTable, &mScore, nil
+}
+
+func (s *Service) GetMatchesIDs(ctx context.Context) (*[]model.Match, error) {
+	return s.Repository.GetMatchesIDs(ctx)
 }
 
 // USER

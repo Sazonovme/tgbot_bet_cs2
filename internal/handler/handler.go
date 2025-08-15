@@ -6,6 +6,7 @@ import (
 	safemap "RushBananaBet/internal/safeMap"
 	"RushBananaBet/internal/ui"
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ type Service interface {
 	CreateMatch(ctx context.Context, userData *model.User) error
 	AddMatchResult(ctx context.Context, userData *model.User) error
 	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, *model.ScoreFinishTable, error)
+	GetMatchesIDs(ctx context.Context) (*[]model.Match, error)
 	GetActiveMatches(ctx context.Context) (*[]model.Match, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
 	AddUserPrediction(ctx context.Context, userData *model.User) error
@@ -109,28 +111,7 @@ func (h *Handler) FinishTournament(ctx context.Context, userData *model.User) {
 	h.Service.GetTournamentFinishTable(ctx)
 }
 
-// Все матчи + сделать прогноз
-
 func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
-
-	// Очищаем чат от старых сообщений
-	// Если сообщение отправлено больше чем 48ч назад удалить не можем
-	// Либо удаляем сообщение либо клавиатуру
-	// lastMessagesIDs, sendAt, _, ok := UserSessionsMap.Get(userData.Chat_id)
-	// if !ok {
-	// 	logger.Error("No value in map", "handler-GetActiveMatches()", nil)
-	// 	return
-	// }
-
-	// if time.Since(sendAt) > 47*time.Hour + 55 * time.Minute {
-	// 	for _, lastMsgID := range lastMessagesIDs {
-	// 		deleteKeyboard(h.BotApi, userData.Chat_id, lastMsgID)
-	// 	}
-	// } else {
-	// 	for _, lastMsgID := range lastMessagesIDs {
-	// 		deleteMsg(h.BotApi, userData.Chat_id, lastMsgID)
-	// 	}
-	// }
 
 	matches, err := h.Service.GetActiveMatches(ctx)
 	if err != nil {
@@ -321,7 +302,27 @@ func (h *Handler) Help(ctx context.Context, userData *model.User) {
 }
 
 func (h *Handler) GetMatchesIDs(ctx context.Context, userData *model.User) {
+	matches, err := h.Service.GetMatchesIDs(ctx)
+	if err != nil {
+		logger.Error("Err get match IDs in handler", "handler-GetMatchesIDs()", err)
+		return
+	}
+	txtMsg := ""
+	for _, match := range *matches {
+		txtMsg += match.Date.Format("2006-01-02 15:04") + " " + match.Name + " " + strconv.Itoa(match.Id) + "\n"
+	}
 
+	sendMsg(h.BotApi, userData.Chat_id, txtMsg, tgbotapi.InlineKeyboardMarkup{})
+
+	keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
+	msg, err := sendMsg(h.BotApi, userData.Chat_id, "Главное меню:", keyboard)
+	if err != nil {
+		logger.Error("Err start()", "handler-GetMatchesIDs()", err)
+		return
+	}
+
+	UserSessionsMap.Delete(userData.Chat_id)
+	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "main_menu")
 }
 
 func (h *Handler) UnknownCommand(ctx context.Context, userData *model.User) {
