@@ -44,3 +44,8 @@ func (s *SafeMap) Delete(chatID int64) {
 	defer s.mu.Unlock()
 	delete(s.sessions, chatID)
 }
+
+func (s *SafeMap) ChangeLastMessages(chatID int64, lastMsgIDs []int, state string) {
+	s.Delete(chatID)
+	s.Set(chatID, lastMsgIDs, state)
+}
