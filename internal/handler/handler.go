@@ -88,7 +88,11 @@ func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
 		return
 	}
 
-	h.Service.CreateTournament(ctx, userData)
+	err := h.Service.CreateTournament(ctx, userData)
+	if err != nil {
+		logger.Error("Err create tournament", "handler-CreateTournament()", err)
+		return
+	}
 }
 
 func (h *Handler) CreateMatch(ctx context.Context, userData *model.User) {
