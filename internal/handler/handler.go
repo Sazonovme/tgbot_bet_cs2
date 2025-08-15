@@ -76,6 +76,9 @@ func (h *Handler) Stop(ctx context.Context, userData *model.User) {
 }
 
 func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
+
+	logger.Debug("Start create tournament", "handler-CreateTournament()", nil)
+
 	isAdmin := model.IsAdmin(userData.Username)
 	if !isAdmin {
 		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})

@@ -27,6 +27,9 @@ func NewRepository(db *pgxpool.Pool) *mainRepository {
 // ADMIN
 
 func (r *mainRepository) CreateTournament(ctx context.Context, name_tournament string) error {
+
+	logger.Debug("Start create tournament", "repository-CreateTournament()", nil)
+
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		logger.Error("Error new transaction in create tournaments", "repository-CreateTournament()", err)
