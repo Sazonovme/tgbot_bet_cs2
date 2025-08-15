@@ -81,6 +81,13 @@ func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
 		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
 		return
 	}
+
+	// Валидация
+	if userData.TextMsg == "" {
+		sendMsg(h.BotApi, userData.Chat_id, "Формат команды /create-tournament [название]", tgbotapi.InlineKeyboardMarkup{})
+		return
+	}
+
 	h.Service.CreateTournament(ctx, userData)
 }
 

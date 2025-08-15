@@ -37,6 +37,9 @@ func NewService(repo Repository) *Service {
 
 func (s *Service) CreateTournament(ctx context.Context, userData *model.User) error {
 	args := strings.Split(userData.TextMsg, " ")
+	if len(args) < 2 {
+		return errors.New("arr message is clear")
+	}
 	return s.Repository.CreateTournament(ctx, args[1])
 }
 
