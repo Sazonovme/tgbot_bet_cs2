@@ -69,10 +69,10 @@ func (r *mainRepository) CreateMatch(ctx context.Context, matches *[]model.Match
 	}
 
 	valueStrings := make([]string, 0, len(*matches))
-	valueArgs := make([]interface{}, 0, len(*matches)*4)
+	valueArgs := make([]any, 0, len(*matches)*5)
 	for i, match := range *matches {
 		n := i * 5
-		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, $%d, %d)", n+1, n+2, n+3, n+4, n+5))
+		valueStrings = append(valueStrings, fmt.Sprintf("($%d, $%d, $%d, CAST($%d AS timestamptz), $%d)", n+1, n+2, n+3, n+4, n+5))
 		valueArgs = append(valueArgs, match.Name, match.Team1, match.Team2, match.Date, "")
 	}
 
@@ -89,10 +89,10 @@ func (r *mainRepository) CreateMatch(ctx context.Context, matches *[]model.Match
 
 	_, err := r.db.Exec(ctx, query, valueArgs...)
 	if err != nil {
-		logger.Error("Create match in db error", "repository-createEvent()", err)
+		logger.Error("Create match in db error", "repository-CreateMatch()", err)
 		return err
 	}
-	logger.Debug("Success create match in db", "repository-createEvent()", nil)
+	logger.Debug("Success create match in db", "repository-CreateMatch()", nil)
 	return nil
 }
 

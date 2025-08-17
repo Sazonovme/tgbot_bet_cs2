@@ -3,7 +3,6 @@ package app
 import (
 	"RushBananaBet/internal/handler"
 	"RushBananaBet/internal/logger"
-	"RushBananaBet/internal/model"
 	"context"
 	"os"
 	"strings"
@@ -56,71 +55,71 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
+	updatePointer := &update
+
 	// === Inline-кнопки (CallbackQuery) ===
 	if update.CallbackQuery != nil {
-		callback := update.CallbackQuery
-		userData := PrepareUserDataFromCallback(callback)
+		// callback := update.CallbackQuery
+		// userData := PrepareUserDataFromCallback(callback)
 
 		switch {
-		case strings.HasPrefix(callback.Data, "active_matches"):
-			a.Handler.GetActiveMatches(ctx, userData)
-		case strings.HasPrefix(callback.Data, "confirm_prediction"):
-			a.Handler.ConfirmPrediction(ctx, userData)
-		case strings.HasPrefix(callback.Data, "my_predictions"):
-			a.Handler.MyPredictions(ctx, userData)
-		case strings.HasPrefix(callback.Data, "make_prediction"):
-			a.Handler.MakePrediction(ctx, userData)
+		case strings.HasPrefix(update.CallbackQuery.Data, "create_tournament"):
+			a.Handler.CreateTournamentMessage(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "create_matches"):
+			a.Handler.CreateMatchesMessage(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "add_results"):
+			a.Handler.AddMatchesResultMessage(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "finish_tournament"):
+			a.Handler.FinishTournament(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "active_matches"):
+			a.Handler.GetActiveMatches(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "confirm_prediction"):
+			a.Handler.ConfirmPrediction(ctx, updatePointer)
+		// ДОБАВИТЬ
+		// case strings.HasPrefix(update.CallbackQuery.Data, "change_prediction"):
+		// 	a.Handler.ConfirmPrediction(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "my_predictions"):
+			a.Handler.MyPredictions(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "make_prediction"):
+			a.Handler.MakePrediction(ctx, updatePointer)
 		// case strings.HasPrefix(callback.Data, "bet_"):
 		// 	a.Handler.HandleBet(ctx, userData, callback)
-		case strings.HasPrefix(callback.Data, "back_to_"):
-			a.Handler.HandleBackTo(ctx, userData, callback)
+		// case strings.HasPrefix(update.CallbackQuery.Data, "back_to_"):
+		// 	a.Handler.HandleBackTo(ctx, userData, callback)
 		default:
-			a.Handler.UnknownCommand(ctx, userData)
+			a.Handler.UnknownCommand(ctx, updatePointer)
 		}
 		return
 
 	} else if update.Message != nil {
 
-		userData := PrepareUserData(update)
+		//userData := PrepareUserData(update)
 
 		// === Обычные команды ===
-		switch userData.TextMsg {
+		switch update.Message.Text {
 		case "/start":
-			a.Handler.Start(ctx, userData)
+			a.Handler.Start(ctx, updatePointer)
 		case "/stop":
-			a.Handler.Stop(ctx, userData)
-		case "/create_tournament":
-			a.Handler.CreateTournament(ctx, userData)
-		case "/create_match":
-			a.Handler.CreateMatch(ctx, userData)
-		case "/add_result":
-			a.Handler.AddMatchResult(ctx, userData)
-		case "/finish_tournament":
-			a.Handler.FinishTournament(ctx, userData)
+			a.Handler.Stop(ctx, updatePointer)
 		case "/help":
-			a.Handler.Help(ctx, userData)
+			a.Handler.Help(ctx, updatePointer)
 		default:
-			a.Handler.UnknownCommand(ctx, userData)
+			a.RouteText(ctx, updatePointer)
 		}
 	}
 }
 
-func PrepareUserData(update tgbotapi.Update) *model.User {
-	return &model.User{
-		Chat_id:    update.Message.Chat.ID,
-		Username:   update.Message.From.UserName,
-		First_name: update.Message.From.FirstName,
-		Last_name:  update.Message.From.LastName,
-		TextMsg:    update.Message.Text,
+func (a *App) RouteText(ctx context.Context, update *tgbotapi.Update) {
+	_, _, state, ok := handler.UserSessionsMap.Get(update.Message.Chat.ID)
+	if !ok {
+		a.Handler.UnknownCommand(ctx, update)
 	}
-}
-
-func PrepareUserDataFromCallback(callback *tgbotapi.CallbackQuery) *model.User {
-	return &model.User{
-		Chat_id:      callback.Message.Chat.ID,
-		Username:     callback.Message.From.UserName,
-		First_name:   callback.Message.From.FirstName,
-		Last_name:    callback.Message.From.LastName,
-		CallbackData: callback.Data,
+	switch state {
+	case "create_tournament":
+		a.Handler.CreateTournament(ctx, update)
+	case "create_matches":
+		a.Handler.CreateMatch(ctx, update)
+	case "add_results":
+		a.Handler.AddMatchResult(ctx, update)
 	}
 }

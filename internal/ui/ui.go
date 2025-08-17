@@ -13,11 +13,11 @@ func PaintMainMenu(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
 	if userIsAdmin {
 		keyboard = tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("➕ Новый турнир", "new_tournament"),
-				tgbotapi.NewInlineKeyboardButtonData("➕ Новый матч", "new_match"),
+				tgbotapi.NewInlineKeyboardButtonData("➕ Новый турнир", "create_tournament"),
+				tgbotapi.NewInlineKeyboardButtonData("➕ Новые матчи", "create_matches"),
 			),
 			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🎯 Добавить результат", "add_result"),
+				tgbotapi.NewInlineKeyboardButtonData("🎯 Добавить результат", "add_results"),
 				tgbotapi.NewInlineKeyboardButtonData("🏁 Завершить турнир", "finish_tournament"),
 			),
 		)
@@ -54,7 +54,7 @@ func PaintButtonsForBetOnMatch(matchName string, matchID int, tag string) tgbota
 	)
 }
 
-func PaintConfirmForm(bet string, matchID string, tag string) tgbotapi.InlineKeyboardMarkup {
+func PaintConfirmForm(tag string, matchID string, bet string) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("✅ Да", tag+"_prediction_"+matchID+"_"+bet+"_y"),

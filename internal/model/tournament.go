@@ -9,6 +9,7 @@ type User struct {
 	Last_name    string
 	TextMsg      string
 	CallbackData string
+	IsAdmin      bool
 }
 
 type Match struct {

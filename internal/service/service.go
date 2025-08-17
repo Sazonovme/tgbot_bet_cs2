@@ -38,27 +38,22 @@ func NewService(repo Repository) *Service {
 func (s *Service) CreateTournament(ctx context.Context, userData *model.User) error {
 
 	logger.Debug("Start create tournament", "service-CreateTournament()", nil)
-
-	args := strings.Split(userData.TextMsg, " ")
-	if len(args) < 2 {
-		return errors.New("arr message is clear")
-	}
-	return s.Repository.CreateTournament(ctx, args[1])
+	return s.Repository.CreateTournament(ctx, userData.TextMsg)
 }
 
 func (s *Service) CreateMatch(ctx context.Context, userData *model.User) error {
+
 	matches := []model.Match{}
-	args := strings.Split(userData.TextMsg, " ")
-	matches_string_array := strings.Split(args[1], "#")
+	matches_string_array := strings.Split(userData.TextMsg, "#")
 
 	for _, val := range matches_string_array {
 		match_arr := strings.Split(val, "_")
 		teams_arr := strings.Split(match_arr[0], "vs")
 
-		date_match, err := time.Parse("02.01.2006 03:04", match_arr[1])
+		date_match, err := time.Parse("2006-01-02 03:04", match_arr[1])
 		if err != nil {
 			logger.Error("Err parse time in create match", "service-CreateMatch()", err)
-			continue
+			return errors.New("err parse date: " + match_arr[1])
 		}
 
 		matches = append(matches, model.Match{
@@ -70,7 +65,7 @@ func (s *Service) CreateMatch(ctx context.Context, userData *model.User) error {
 	}
 
 	if len(matches) < 1 {
-		return errors.New("error parse matches")
+		return errors.New("error parse matches - len array = 0")
 	}
 
 	return s.Repository.CreateMatch(ctx, &matches)

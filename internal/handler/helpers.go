@@ -1,7 +1,8 @@
 package handler
 
 import (
-	"RushBananaBet/internal/logger"
+	"RushBananaBet/internal/model"
+	"RushBananaBet/internal/ui"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -14,7 +15,6 @@ func sendMsg(botAPI *tgbotapi.BotAPI, chat_id int64, text string, keyboard tgbot
 	}
 	botMsg, err := botAPI.Send(msg)
 	if err != nil {
-		logger.Error("Err send msg", "helpers-sendMsg()", err)
 		return botMsg, err
 	}
 	return botMsg, nil
@@ -37,42 +37,21 @@ func CalcPointsForBet(prediction string, result string) string {
 	return points
 }
 
-// func PaintMainMenuWithMessage(botAPI *tgbotapi.BotAPI, userData *model.User, message string) {
-// 	keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
-// 	_, err := sendMsg(botAPI, userData.Chat_id, "Главное меню:", keyboard)
-// 	if err != nil {
-// 		logger.Error("Err start()", "handler-Start()", err)
-// 		return
-// 	}
-// }
+func openMainMenu(botAPI *tgbotapi.BotAPI, messageText string, userData *model.User) error {
+	if messageText != "" {
+		_, err := sendMsg(botAPI, userData.Chat_id, messageText, tgbotapi.InlineKeyboardMarkup{})
+		if err != nil {
+			return err
+		}
+	}
 
-// func deleteMsg(botAPI *tgbotapi.BotAPI, chat_id int64, message_id int) error {
+	keyboard := ui.PaintMainMenu(userData.IsAdmin)
+	msg, err := sendMsg(botAPI, userData.Chat_id, "Главное меню:", keyboard)
+	if err != nil {
+		return err
+	}
+	UserSessionsMap.Delete(userData.Chat_id)
+	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "main_menu")
 
-// 	deleteConfig := tgbotapi.DeleteMessageConfig{
-// 		ChatID:    chat_id,
-// 		MessageID: message_id,
-// 	}
-
-// 	if _, err := botAPI.Send(deleteConfig); err != nil {
-// 		logger.Error("Err delete msg", "helpers-deleteMsg()", err)
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func deleteKeyboard(botAPI *tgbotapi.BotAPI, chat_id int64, message_id int) error {
-// 	edit := tgbotapi.NewEditMessageReplyMarkup(
-// 		chat_id,
-// 		message_id,
-// 		tgbotapi.InlineKeyboardMarkup{InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{}},
-// 	)
-
-// 	if _, err := botAPI.Send(edit); err != nil {
-// 		logger.Error("Err delete keyboard", "helpers-deleteKeyboard()", err)
-// 		return err
-// 	}
-
-// 	return nil
-
-// }
+	return nil
+}

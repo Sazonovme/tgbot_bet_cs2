@@ -6,6 +6,7 @@ import (
 	safemap "RushBananaBet/internal/safeMap"
 	"RushBananaBet/internal/ui"
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -43,44 +44,46 @@ func NewHandler(s Service) *Handler {
 	}
 }
 
-func (h *Handler) Start(ctx context.Context, userData *model.User) {
+func (h *Handler) Start(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
+
 	err, _ := h.Service.AddNewUser(ctx, userData)
 	if err != nil {
 		logger.Error("Err start()", "handler-Start()", err)
 		return
 	}
 
-	_, err = sendMsg(h.BotApi, userData.Chat_id, "Привет, теперь ты участник закрытого клуба петушков", tgbotapi.InlineKeyboardMarkup{})
-	if err != nil {
-		h.Service.DeactivateUser(ctx, userData.Chat_id)
-		return
-	}
-	keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
-	msg, err := sendMsg(h.BotApi, userData.Chat_id, "Главное меню:", keyboard)
+	err = openMainMenu(h.BotApi, "Привет, теперь ты участник закрытого клуба петушков", userData)
 	if err != nil {
 		logger.Error("Err start()", "handler-Start()", err)
 		return
 	}
-	UserSessionsMap.Delete(userData.Chat_id)
-	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "active_matches")
 
 }
 
-func (h *Handler) Stop(ctx context.Context, userData *model.User) {
-	sendMsg(h.BotApi, userData.Chat_id, "gg, ты больше не участник, так даже лучше, ТАКИЕ писькотрясы нам не нужны", tgbotapi.InlineKeyboardMarkup{})
-	err := h.Service.DeactivateUser(ctx, userData.Chat_id)
+func (h *Handler) Stop(ctx context.Context, update *tgbotapi.Update) {
+
+	sendMsg(h.BotApi, update.Message.Chat.ID, "gg, ты больше не участник, так даже лучше, ТАКИЕ писькотрясы нам не нужны", tgbotapi.InlineKeyboardMarkup{})
+	err := h.Service.DeactivateUser(ctx, update.Message.Chat.ID)
 	if err != nil {
-		logger.Error("Err create tournament", "handler-Stop()", err)
+		logger.Error("Err deactivate user", "handler-Stop()", err)
 		return
 	}
 }
 
-func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
+func (h *Handler) CreateTournamentMessage(ctx context.Context, update *tgbotapi.Update) {
+	msg, _ := sendMsg(h.BotApi, update.CallbackQuery.Message.Chat.ID, "Отправьте название турнира", tgbotapi.InlineKeyboardMarkup{})
+	UserSessionsMap.ChangeLastMessages(update.CallbackQuery.Message.Chat.ID, []int{msg.MessageID}, "create_tournament")
+}
 
-	logger.Debug("Start create tournament", "handler-CreateTournament()", nil)
+func (h *Handler) CreateTournament(ctx context.Context, update *tgbotapi.Update) {
 
-	isAdmin := model.IsAdmin(userData.Username)
-	if !isAdmin {
+	// Prepare data
+	userData := PrepareUserData(update)
+
+	if !userData.IsAdmin {
 		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
 		return
 	}
@@ -94,38 +97,123 @@ func (h *Handler) CreateTournament(ctx context.Context, userData *model.User) {
 	err := h.Service.CreateTournament(ctx, userData)
 	if err != nil {
 		logger.Error("Err create tournament", "handler-CreateTournament()", err)
+		// Возврат в главное меню
+		err := openMainMenu(h.BotApi, err.Error(), userData)
+		if err != nil {
+			logger.Error("Open menu err", "handler-CreateMatches()", err)
+			return
+		}
+		return
+	}
+
+	// Возвращаем в главное меню
+	err = openMainMenu(h.BotApi, "✅ Туринр успешно создан ✅", userData)
+	if err != nil {
+		logger.Error("Err create tournament", "handler-CreateTournament()", err)
 		return
 	}
 }
 
-func (h *Handler) CreateMatch(ctx context.Context, userData *model.User) {
-	isAdmin := model.IsAdmin(userData.Username)
-	if !isAdmin {
+func (h *Handler) CreateMatchesMessage(ctx context.Context, update *tgbotapi.Update) {
+	msg, _ := sendMsg(h.BotApi, update.CallbackQuery.Message.Chat.ID, "Отправьте матчи в формате: [t1vst2]_[2025-08-16 15:00]#...", tgbotapi.InlineKeyboardMarkup{})
+	UserSessionsMap.ChangeLastMessages(update.CallbackQuery.Message.Chat.ID, []int{msg.MessageID}, "create_matches")
+}
+
+func (h *Handler) CreateMatch(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
+
+	if !userData.IsAdmin {
 		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
 		return
 	}
-	h.Service.CreateMatch(ctx, userData)
+
+	errText := validateMatches(userData.TextMsg)
+	if errText != "" {
+		logger.Error("Validation matches error", "handler-CreateMatches()", errors.New(errText))
+		// Возврат в главное меню
+		err := openMainMenu(h.BotApi, errText, userData)
+		if err != nil {
+			logger.Error("Open menu err", "handler-CreateMatches()", err)
+			return
+		}
+		return
+	}
+
+	err := h.Service.CreateMatch(ctx, userData)
+	if err != nil {
+		logger.Error("Err create matches", "handler-CreateMatches()", err)
+		// Возвращаем в главное меню
+		err = openMainMenu(h.BotApi, err.Error(), userData)
+		if err != nil {
+			logger.Error("Open menu err", "handler-CreateMatches()", err)
+			return
+		}
+		return
+	}
+
+	// Возвращаем в главное меню
+	err = openMainMenu(h.BotApi, "✅ Матчи успешно созданы ✅", userData)
+	if err != nil {
+		logger.Error("Open menu err", "handler-CreateMatches()", err)
+		return
+	}
 }
 
-func (h *Handler) AddMatchResult(ctx context.Context, userData *model.User) {
-	isAdmin := model.IsAdmin(userData.Username)
-	if !isAdmin {
+func (h *Handler) AddMatchesResultMessage(ctx context.Context, update *tgbotapi.Update) {
+	msg, _ := sendMsg(h.BotApi, update.CallbackQuery.Message.Chat.ID, "Отправьте результаты в формате: [matchID]_[result]#...", tgbotapi.InlineKeyboardMarkup{})
+	UserSessionsMap.ChangeLastMessages(update.CallbackQuery.Message.Chat.ID, []int{msg.MessageID}, "add_results")
+}
+
+func (h *Handler) AddMatchResult(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
+
+	if !userData.IsAdmin {
 		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
 		return
 	}
-	h.Service.AddMatchResult(ctx, userData)
+
+	errText := validateMatchesResults(userData.TextMsg)
+	if errText != "" {
+		logger.Error("Validate matches reulst err", "handler-AddMatchResult()", errors.New(errText))
+		// Возврат в главное меню
+		err := openMainMenu(h.BotApi, errText, userData)
+		if err != nil {
+			logger.Error("Err open menu", "handler-AddMatchResult()", err)
+			return
+		}
+		return
+	}
+
+	err := h.Service.AddMatchResult(ctx, userData)
+	if err != nil {
+		logger.Error("Add matches result err", "handler-AddMatchResult()", err)
+		// Возврат в главное меню
+		err := openMainMenu(h.BotApi, err.Error(), userData)
+		if err != nil {
+			logger.Error("Err open menu", "handler-AddMatchResult()", err)
+			return
+		}
+		return
+	}
 }
 
-func (h *Handler) FinishTournament(ctx context.Context, userData *model.User) {
-	isAdmin := model.IsAdmin(userData.Username)
-	if !isAdmin {
-		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
+func (h *Handler) FinishTournament(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
+
+	if !userData.IsAdmin {
+		sendMsg(h.BotApi, update.Message.Chat.ID, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
 		return
 	}
 	h.Service.GetTournamentFinishTable(ctx)
 }
 
-func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
+func (h *Handler) GetActiveMatches(ctx context.Context, update *tgbotapi.Update) {
 
 	matches, err := h.Service.GetActiveMatches(ctx)
 	if err != nil {
@@ -133,7 +221,7 @@ func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
 		return
 	}
 
-	_, err = sendMsg(h.BotApi, userData.Chat_id, "🔽 ВСЕ АКТИВНЫЕ МАТЧИ 🔽", tgbotapi.InlineKeyboardMarkup{})
+	_, err = sendMsg(h.BotApi, update.CallbackQuery.Message.Chat.ID, "🔽 ВСЕ АКТИВНЫЕ МАТЧИ 🔽", tgbotapi.InlineKeyboardMarkup{})
 	if err != nil {
 		logger.Error("Error send msg", "handler-GetActiveMatches()", err)
 		return
@@ -145,7 +233,7 @@ func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
 
 		keyboard := ui.PaintButtonsForBetOnMatch(match.Name, match.Id, "confirm")
 		msgText := match.Name + "\n" + "Выберите точный счет для команды " + match.Team1 + " или Win для ставки на победу команды"
-		msg, err := sendMsg(h.BotApi, userData.Chat_id, msgText, keyboard)
+		msg, err := sendMsg(h.BotApi, update.CallbackQuery.Message.Chat.ID, msgText, keyboard)
 		if err != nil {
 			logger.Error("Err GetActiveMatches()", "handler-GetActiveMatches()", err)
 			return
@@ -154,11 +242,14 @@ func (h *Handler) GetActiveMatches(ctx context.Context, userData *model.User) {
 		MessageIDs = append(MessageIDs, msg.MessageID)
 	}
 
-	UserSessionsMap.Delete(userData.Chat_id)
-	UserSessionsMap.Set(userData.Chat_id, MessageIDs, "active_matches")
+	UserSessionsMap.Delete(update.CallbackQuery.Message.Chat.ID)
+	UserSessionsMap.Set(update.CallbackQuery.Message.Chat.ID, MessageIDs, "active_matches")
 }
 
-func (h *Handler) ConfirmPrediction(ctx context.Context, userData *model.User) {
+func (h *Handler) ConfirmPrediction(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
 
 	// confirm_prediction_[matchName]_[matchID]_[bet]
 	// change_prediction_[matchName]_[matchID]_[bet]
@@ -183,7 +274,14 @@ func (h *Handler) ConfirmPrediction(ctx context.Context, userData *model.User) {
 		textMessage = "Изменение ставки\n" + "Матч: " + teams[0] + " vs " + teams[1] + "\n" + "Новая ставка: " + betTxt + "\n" + "Подтвердить?"
 	}
 
-	keyboard := ui.PaintConfirmForm(arr[2], arr[3], arr[0])
+	tag := ""
+	if arr[0] == "confirm" {
+		tag = "make"
+	} else {
+		tag = "change"
+	}
+
+	keyboard := ui.PaintConfirmForm(tag, arr[3], arr[4])
 
 	msg, err := sendMsg(h.BotApi, userData.Chat_id, textMessage, keyboard)
 	if err != nil {
@@ -195,16 +293,19 @@ func (h *Handler) ConfirmPrediction(ctx context.Context, userData *model.User) {
 	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "confirm_form")
 }
 
-func (h *Handler) MakePrediction(ctx context.Context, userData *model.User) {
+func (h *Handler) MakePrediction(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
 
 	// make_prediction_[matchID]_[bet]_[y/n]
 	// change_prediction_[matchID]_[bet]_[y/n]
 	arr := strings.Split(userData.CallbackData, "_")
 	if arr[4] == "n" && arr[0] == "make" {
-		h.GetActiveMatches(ctx, userData)
+		h.GetActiveMatches(ctx, update)
 		return
 	} else if arr[4] == "n" && arr[0] == "change" {
-		h.MyPredictions(ctx, userData)
+		h.MyPredictions(ctx, update)
 		return
 	}
 
@@ -215,33 +316,25 @@ func (h *Handler) MakePrediction(ctx context.Context, userData *model.User) {
 	}
 
 	// Переводим в главное меню
+	txtMsg := ""
 	if arr[0] == "make" {
-		_, err = sendMsg(h.BotApi, userData.Chat_id, "✅ Ставка успешно сделана ✅", tgbotapi.InlineKeyboardMarkup{})
+		txtMsg = "✅ Ставка успешно сделана ✅"
 	} else if arr[0] == "change" {
-		_, err = sendMsg(h.BotApi, userData.Chat_id, "✅ Ставка успешно изменена ✅", tgbotapi.InlineKeyboardMarkup{})
-	}
-	if err != nil {
-		logger.Error("Err send msg", "handler-MakePrediction()", err)
-		return
+		txtMsg = "✅ Ставка успешно изменена ✅"
 	}
 
-	keyboard := ui.PaintMainMenu(model.IsAdmin(userData.Username))
-	msg, err := sendMsg(h.BotApi, userData.Chat_id, "Главное меню:", keyboard)
+	// Возврат в главное меню
+	err = openMainMenu(h.BotApi, txtMsg, userData)
 	if err != nil {
-		logger.Error("Err start()", "handler-Start()", err)
+		logger.Error("Err open menu", "handler-AddMatchResult()", err)
 		return
 	}
-
-	UserSessionsMap.Delete(userData.Chat_id)
-	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "main_menu")
 }
 
-func (h *Handler) MyPredictions(ctx context.Context, userData *model.User) {
+func (h *Handler) MyPredictions(ctx context.Context, update *tgbotapi.Update) {
 
-	// Необходимо построить таблицу матчей
-	// 1. Матчи дата которых уже истекла должны быть без кнопок
-	// 2. Матчи до даты с кнопками
-	// 3. Матчи с результатом должны быть сразу с количеством баллов
+	// Prepare data
+	userData := PrepareUserData(update)
 
 	userPredictions, err := h.Service.GetUserPredictions(ctx, userData.Username)
 	if err != nil {
@@ -300,9 +393,12 @@ func (h *Handler) MyPredictions(ctx context.Context, userData *model.User) {
 	UserSessionsMap.Set(userData.Chat_id, MessageIDs, "my_predictions")
 }
 
-func (h *Handler) Help(ctx context.Context, userData *model.User) {
-	isAdmin := model.IsAdmin(userData.Username)
-	if !isAdmin {
+func (h *Handler) Help(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
+
+	if !userData.IsAdmin {
 		sendMsg(h.BotApi, userData.Chat_id, "Васылек, ниче не попутал? Иди гуляй, данная функция для администраторов", tgbotapi.InlineKeyboardMarkup{})
 		return
 	}
@@ -315,7 +411,11 @@ func (h *Handler) Help(ctx context.Context, userData *model.User) {
 	sendMsg(h.BotApi, userData.Chat_id, txtMsg, tgbotapi.InlineKeyboardMarkup{})
 }
 
-func (h *Handler) GetMatchesIDs(ctx context.Context, userData *model.User) {
+func (h *Handler) GetMatchesIDs(ctx context.Context, update *tgbotapi.Update) {
+
+	// Prepare data
+	userData := PrepareUserData(update)
+
 	matches, err := h.Service.GetMatchesIDs(ctx)
 	if err != nil {
 		logger.Error("Err get match IDs in handler", "handler-GetMatchesIDs()", err)
@@ -339,15 +439,15 @@ func (h *Handler) GetMatchesIDs(ctx context.Context, userData *model.User) {
 	UserSessionsMap.Set(userData.Chat_id, []int{msg.MessageID}, "main_menu")
 }
 
-func (h *Handler) UnknownCommand(ctx context.Context, userData *model.User) {
+func (h *Handler) UnknownCommand(ctx context.Context, update *tgbotapi.Update) {
 	//sendMsg(h.BotApi, userData.Chat_id, "Неизвестная команда", nil)
 }
 
-func (h *Handler) HandleBackTo(ctx context.Context, userData *model.User, callback *tgbotapi.CallbackQuery) {
+// func (h *Handler) HandleBackTo(ctx context.Context, userData *model.User, callback *tgbotapi.CallbackQuery) {
 
-	// pointMenu := strings.Replace(callback.Data, "back_to_", "")
-	// switch pointMenu {
-	// 	case
-	// }
-	// callback.Data
-}
+// 	// pointMenu := strings.Replace(callback.Data, "back_to_", "")
+// 	// switch pointMenu {
+// 	// 	case
+// 	// }
+// 	// callback.Data
+// }
