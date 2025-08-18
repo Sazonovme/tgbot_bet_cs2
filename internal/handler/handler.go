@@ -29,7 +29,7 @@ type Service interface {
 	GetMatchesIDs(ctx context.Context) (*[]model.Match, error)
 	GetActiveMatches(ctx context.Context) (*[]model.Match, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
-	AddUserPrediction(ctx context.Context, userData *model.User) error
+	AddUserPrediction(ctx context.Context, userData *model.User, chat_id int64) error
 	AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool)
 	DeactivateUser(ctx context.Context, chat_id int64) error
 }
@@ -309,7 +309,7 @@ func (h *Handler) MakePrediction(ctx context.Context, update *tgbotapi.Update) {
 		return
 	}
 
-	err := h.Service.AddUserPrediction(ctx, userData)
+	err := h.Service.AddUserPrediction(ctx, userData, userData.Chat_id)
 	if err != nil {
 		logger.Error("Err add user prediction", "handler-MakePrediction()", err)
 		return

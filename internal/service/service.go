@@ -22,7 +22,7 @@ type Repository interface {
 	GetMatchesIDs(ctx context.Context) (*[]model.Match, error)
 	GetActiveMatches(ctx context.Context) (*[]model.Match, error)
 	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
-	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error
+	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction, chat_id int64) error
 	AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool)
 	DeactivateUser(ctx context.Context, chat_id int64) error
 }
@@ -149,7 +149,7 @@ func (s *Service) GetUserPredictions(ctx context.Context, username string) (*[]m
 	return s.Repository.GetUserPredictions(ctx, username)
 }
 
-func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User) error {
+func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User, chat_id int64) error {
 
 	// make_prediction_[matchID]_[bet]_[y/n]
 	args := strings.Split(userData.CallbackData, "_")
@@ -164,7 +164,7 @@ func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User) e
 		Prediction: args[3],
 	}
 
-	return s.Repository.AddUserPrediction(ctx, &prediction)
+	return s.Repository.AddUserPrediction(ctx, &prediction, chat_id)
 }
 
 // GENERAL

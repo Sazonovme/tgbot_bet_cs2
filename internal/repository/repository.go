@@ -290,14 +290,18 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 	return &predictions, nil
 }
 
-func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction) error {
+func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction, chat_id int64) error {
 
 	query := `INSERT INTO predictions (username, match_id, prediction)
-				VALUES (@username, @match_id, @prediction)
+				VALUES (
+					(SELECT username FROM telegram_users WHERE chat_id = @chat_id), 
+					@match_id, 
+					@prediction
+				)
 				ON CONFLICT (username, match_id)
 				DO UPDATE SET prediction = EXCLUDED.prediction`
 	args := pgx.NamedArgs{
-		"username":   prediction.Username,
+		"chat_id":    chat_id,
 		"match_id":   prediction.Match_id,
 		"prediction": prediction.Prediction,
 	}
