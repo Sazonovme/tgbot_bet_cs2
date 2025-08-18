@@ -6,9 +6,8 @@ migrate -path ../../migrations -database "postgres://postgres@localhost:5432/rus
 -- Таблица пользователей телеграма
 CREATE TABLE IF NOT EXISTS telegram_users (
    chat_id BIGINT PRIMARY KEY,
+   user_id BIGINT UNIQUE NOT NULL,
    username TEXT UNIQUE,
-   first_name TEXT,
-   last_name TEXT,
    is_active BOOLEAN DEFAULT true,
    created_at TIMESTAMP DEFAULT NOW()
 );
@@ -33,10 +32,10 @@ CREATE TABLE IF NOT EXISTS matches (
 
 -- Таблица предсказаний
 CREATE TABLE IF NOT EXISTS predictions (
-   username TEXT NOT NULL REFERENCES telegram_users(username),
+   chat_id BIGINT NOT NULL REFERENCES telegram_users(chat_id),
    match_id INT REFERENCES matches(id),
    prediction VARCHAR(5) NOT NULL, -- например: '2-1' или "1"
-   UNIQUE (username, match_id)
+   UNIQUE (chat_id, match_id)
 );
 
 -- Пользователь базы

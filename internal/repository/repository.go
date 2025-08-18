@@ -244,7 +244,7 @@ func (r *mainRepository) GetActiveMatches(ctx context.Context) (*[]model.Match, 
 	return &activeMatches, nil
 }
 
-func (r *mainRepository) GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error) {
+func (r *mainRepository) GetUserPredictions(ctx context.Context, chat_id int64) (*[]model.UserPrediction, error) {
 
 	query := `SELECT
 				m.name AS match_name,
@@ -254,7 +254,7 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 			FROM predictions p
 			JOIN matches m ON p.match_id = m.id
 			WHERE
-				p.username = @username
+				p.chat_id = @chat_id
 			ORDER BY
     			CASE 
        				WHEN m.result <> '' THEN 0           -- сначала матчи с результатом
@@ -263,7 +263,7 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 				END,
 				m.date ASC`
 	args := pgx.NamedArgs{
-		"username": username,
+		"chat_id": chat_id,
 	}
 
 	sqlRows, err := r.db.Query(ctx, query, args)
@@ -292,13 +292,13 @@ func (r *mainRepository) GetUserPredictions(ctx context.Context, username string
 
 func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *model.UserPrediction, chat_id int64) error {
 
-	query := `INSERT INTO predictions (username, match_id, prediction)
+	query := `INSERT INTO predictions (chat_id, match_id, prediction)
 				VALUES (
-					(SELECT username FROM telegram_users WHERE chat_id = @chat_id), 
+					@chat_id,
 					@match_id, 
 					@prediction
 				)
-				ON CONFLICT (username, match_id)
+				ON CONFLICT (chat_id, match_id)
 				DO UPDATE SET prediction = EXCLUDED.prediction`
 	args := pgx.NamedArgs{
 		"chat_id":    chat_id,
@@ -315,14 +315,13 @@ func (r *mainRepository) AddUserPrediction(ctx context.Context, prediction *mode
 	return nil
 }
 
-func (r *mainRepository) AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool) {
-	query := `INSERT INTO telegram_users (chat_id, username, first_name, last_name, is_active)
-				VALUES (@chat_id, @username, @first_name, @last_name, true)`
+func (r *mainRepository) AddNewUser(ctx context.Context, chat_id int64, user_id int64, username string) (err error, isExist bool) {
+	query := `INSERT INTO telegram_users (chat_id, user_id, username, is_active)
+				VALUES (@chat_id, @user_id, @username, true)`
 	args := pgx.NamedArgs{
-		"chat_id":    user.Chat_id,
-		"username":   user.Username,
-		"first_name": user.First_name,
-		"last_name":  user.Last_name,
+		"chat_id":  chat_id,
+		"user_id":  user_id,
+		"username": username,
 	}
 
 	_, err = r.db.Exec(ctx, query, args)
