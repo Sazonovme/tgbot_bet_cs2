@@ -4,10 +4,7 @@ import (
 	"RushBananaBet/internal/logger"
 	"RushBananaBet/internal/model"
 	"context"
-	"errors"
-	"strconv"
 	"strings"
-	"time"
 )
 
 type Service struct {
@@ -15,16 +12,21 @@ type Service struct {
 }
 
 type Repository interface {
-	CreateTournament(ctx context.Context, name_tournament string) error
-	CreateMatch(ctx context.Context, matches *[]model.Match) error
-	AddMatchResult(ctx context.Context, results *[]model.Result) error
-	GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, error)
-	GetMatchesIDs(ctx context.Context) (*[]model.Match, error)
-	GetActiveMatches(ctx context.Context) (*[]model.Match, error)
-	GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error)
-	AddUserPrediction(ctx context.Context, prediction *model.UserPrediction, chat_id int64) error
-	AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool)
-	DeactivateUser(ctx context.Context, chat_id int64) error
+
+	//GENERAL
+	AddNewUser(ctx context.Context, chat_id int64, user_id int64, username string) (isExist bool, err error)
+
+	// ADMIN
+	CreateTournament(ctx context.Context, name_tournament string) (added bool, err error)
+	CreateMatches(ctx context.Context, matches []model.Match) error
+	AddMatchResults(ctx context.Context, results []model.Result) error
+	GetTournamentFinishTable(ctx context.Context) ([]model.TournamentFinishTable, error)
+	GetActiveMatchesID(ctx context.Context) ([]model.Match, error)
+
+	// USER
+	GetActiveMatches(ctx context.Context) ([]model.Match, error)
+	GetUserPredictions(ctx context.Context, chat_id int64) ([]model.UserPrediction, error)
+	AddUpdateUserPrediction(ctx context.Context, chat_id int64, match_id int, prediction string) (inserted bool, err error)
 }
 
 func NewService(repo Repository) *Service {
@@ -33,75 +35,34 @@ func NewService(repo Repository) *Service {
 	}
 }
 
+// GENERAL
+
+func (s *Service) AddNewUser(ctx context.Context, chat_id int64, user_id int64, username string) (isExist bool, err error) {
+	return s.Repository.AddNewUser(ctx, chat_id, user_id, username)
+}
+
 // ADMIN
 
-func (s *Service) CreateTournament(ctx context.Context, userData *model.User) error {
-
-	logger.Debug("Start create tournament", "service-CreateTournament()", nil)
-	return s.Repository.CreateTournament(ctx, userData.TextMsg)
+func (s *Service) CreateTournament(ctx context.Context, name_tournament string) (added bool, err error) {
+	return s.Repository.CreateTournament(ctx, name_tournament)
 }
 
-func (s *Service) CreateMatch(ctx context.Context, userData *model.User) error {
-
-	matches := []model.Match{}
-	matches_string_array := strings.Split(userData.TextMsg, "#")
-
-	for _, val := range matches_string_array {
-		match_arr := strings.Split(val, "_")
-		teams_arr := strings.Split(match_arr[0], "vs")
-
-		date_match, err := time.Parse("2006-01-02 03:04", match_arr[1])
-		if err != nil {
-			logger.Error("Err parse time in create match", "service-CreateMatch()", err)
-			return errors.New("err parse date: " + match_arr[1])
-		}
-
-		matches = append(matches, model.Match{
-			Name:  match_arr[0],
-			Date:  date_match,
-			Team1: teams_arr[0],
-			Team2: teams_arr[1],
-		})
-	}
-
-	if len(matches) < 1 {
-		return errors.New("error parse matches - len array = 0")
-	}
-
-	return s.Repository.CreateMatch(ctx, &matches)
+func (s *Service) CreateMatches(ctx context.Context, matches []model.Match) error {
+	return s.Repository.CreateMatches(ctx, matches)
 }
 
-func (s *Service) AddMatchResult(ctx context.Context, userData *model.User) error {
-	results := []model.Result{}
-	args := strings.Split(userData.TextMsg, " ")
-	result_string_array := strings.Split(args[1], "#")
-
-	for _, val := range result_string_array {
-		result_arr := strings.Split(val, "_")
-		match_id, err := strconv.Atoi(result_arr[0])
-
-		if err != nil {
-			logger.Error("Err convert string match_id to int", "service-AddMatchResult()", err)
-			continue
-		}
-
-		results = append(results, model.Result{
-			Match_id: match_id,
-			Result:   result_arr[1],
-		})
-	}
-
-	return s.Repository.AddMatchResult(ctx, &results)
+func (s *Service) AddMatchResults(ctx context.Context, results []model.Result) error {
+	return s.Repository.AddMatchResults(ctx, results)
 }
 
-func (s *Service) GetTournamentFinishTable(ctx context.Context) (*[]model.TournamentFinishTable, *model.ScoreFinishTable, error) {
-	tournamentFinishTablePointer, err := s.Repository.GetTournamentFinishTable(ctx)
+func (s *Service) GetTournamentFinishTable(ctx context.Context) ([]model.TournamentFinishTable, model.ScoreFinishTable, error) {
+
+	tournamentFinishTable, err := s.Repository.GetTournamentFinishTable(ctx)
 	if err != nil {
-		logger.Error("Error get event finish table from repo", "service-GetEventFinishTable()", err)
+		logger.Error("Error get finish table", "service-GetTournamentFinishTable()", err)
 		return nil, nil, err
 	}
 
-	tournamentFinishTable := *tournamentFinishTablePointer
 	mScore := model.ScoreFinishTable{}
 	curScore := 0
 	for key, elem := range tournamentFinishTable {
@@ -132,47 +93,24 @@ func (s *Service) GetTournamentFinishTable(ctx context.Context) (*[]model.Tourna
 		}
 	}
 
-	return &tournamentFinishTable, &mScore, nil
+	logger.Debug("Success final table calculation", "service-GetTournamentFinishTable()", nil)
+	return tournamentFinishTable, mScore, nil
 }
 
-func (s *Service) GetMatchesIDs(ctx context.Context) (*[]model.Match, error) {
-	return s.Repository.GetMatchesIDs(ctx)
+func (s *Service) GetActiveMatchesID(ctx context.Context) ([]model.Match, error) {
+	return s.Repository.GetActiveMatchesID(ctx)
 }
 
 // USER
 
-func (s *Service) GetActiveMatches(ctx context.Context) (*[]model.Match, error) {
+func (s *Service) GetActiveMatches(ctx context.Context) ([]model.Match, error) {
 	return s.Repository.GetActiveMatches(ctx)
 }
 
-func (s *Service) GetUserPredictions(ctx context.Context, username string) (*[]model.UserPrediction, error) {
-	return s.Repository.GetUserPredictions(ctx, username)
+func (s *Service) GetUserPredictions(ctx context.Context, chat_id int64) ([]model.UserPrediction, error) {
+	return s.Repository.GetUserPredictions(ctx, chat_id)
 }
 
-func (s *Service) AddUserPrediction(ctx context.Context, userData *model.User, chat_id int64) error {
-
-	// make_prediction_[matchID]_[bet]_[y/n]
-	args := strings.Split(userData.CallbackData, "_")
-	match_id, err := strconv.Atoi(args[2])
-	if err != nil {
-		logger.Error("Err to convert string to int", "service - AddUserPrediction()", err)
-		return err
-	}
-
-	prediction := model.UserPrediction{
-		Match_id:   uint(match_id),
-		Prediction: args[3],
-	}
-
-	return s.Repository.AddUserPrediction(ctx, &prediction, chat_id)
-}
-
-// GENERAL
-
-func (s *Service) AddNewUser(ctx context.Context, user *model.User) (err error, isExist bool) {
-	return s.Repository.AddNewUser(ctx, user)
-}
-
-func (s *Service) DeactivateUser(ctx context.Context, chat_id int64) error {
-	return s.Repository.DeactivateUser(ctx, chat_id)
+func (s *Service) AddUpdateUserPrediction(ctx context.Context, chat_id int64, match_id int, prediction string) (inserted bool, err error) {
+	return s.Repository.AddUpdateUserPrediction(ctx, chat_id, match_id, prediction)
 }

@@ -5,6 +5,7 @@ import (
 	"RushBananaBet/internal/logger"
 	"context"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,52 +58,40 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 
 	updatePointer := &update
 
-	// === Inline-кнопки (CallbackQuery) ===
+	// === Inline (CallbackQuery) ===
 	if update.CallbackQuery != nil {
-		// callback := update.CallbackQuery
-		// userData := PrepareUserDataFromCallback(callback)
-
 		switch {
 		case strings.HasPrefix(update.CallbackQuery.Data, "create_tournament"):
 			a.Handler.CreateTournamentMessage(ctx, updatePointer)
 		case strings.HasPrefix(update.CallbackQuery.Data, "create_matches"):
 			a.Handler.CreateMatchesMessage(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "get_match_ids"):
+			a.Handler.GetActiveMatchesID(ctx, updatePointer)
 		case strings.HasPrefix(update.CallbackQuery.Data, "add_results"):
 			a.Handler.AddMatchesResultMessage(ctx, updatePointer)
 		case strings.HasPrefix(update.CallbackQuery.Data, "finish_tournament"):
 			a.Handler.FinishTournament(ctx, updatePointer)
 		case strings.HasPrefix(update.CallbackQuery.Data, "active_matches"):
 			a.Handler.GetActiveMatches(ctx, updatePointer)
-		case strings.HasPrefix(update.CallbackQuery.Data, "confirm_prediction"):
-			a.Handler.ConfirmPrediction(ctx, updatePointer)
-		// ДОБАВИТЬ
-		// case strings.HasPrefix(update.CallbackQuery.Data, "change_prediction"):
-		// 	a.Handler.ConfirmPrediction(ctx, updatePointer)
-		case strings.HasPrefix(update.CallbackQuery.Data, "my_predictions"):
-			a.Handler.MyPredictions(ctx, updatePointer)
-		case strings.HasPrefix(update.CallbackQuery.Data, "make_prediction"):
-			a.Handler.MakePrediction(ctx, updatePointer)
-		// case strings.HasPrefix(callback.Data, "bet_"):
-		// 	a.Handler.HandleBet(ctx, userData, callback)
-		// case strings.HasPrefix(update.CallbackQuery.Data, "back_to_"):
-		// 	a.Handler.HandleBackTo(ctx, userData, callback)
+		case strings.HasPrefix(update.CallbackQuery.Data, "user_predictions"):
+			a.Handler.GetUserPredictions(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "confirm") ||
+			strings.HasPrefix(update.CallbackQuery.Data, "change"):
+			a.Handler.GetConfirmPrediction(ctx, updatePointer)
+		case strings.HasPrefix(update.CallbackQuery.Data, "Endconfirm") ||
+			strings.HasPrefix(update.CallbackQuery.Data, "Endchange"):
+			a.Handler.ProcessingConfirmPrediction(ctx, updatePointer)
 		default:
-			a.Handler.UnknownCommand(ctx, updatePointer)
+			a.Handler.UnknownCommand(ctx, update.CallbackQuery.Message.Chat.ID, "🔴 Invalid command 🔴")
 		}
 		return
 
 	} else if update.Message != nil {
 
-		//userData := PrepareUserData(update)
-
-		// === Обычные команды ===
+		// === Regular commands ===
 		switch update.Message.Text {
 		case "/start":
 			a.Handler.Start(ctx, updatePointer)
-		case "/stop":
-			a.Handler.Stop(ctx, updatePointer)
-		case "/help":
-			a.Handler.Help(ctx, updatePointer)
 		default:
 			a.RouteText(ctx, updatePointer)
 		}
@@ -112,14 +101,15 @@ func (a *App) RouteUpdate(update tgbotapi.Update) {
 func (a *App) RouteText(ctx context.Context, update *tgbotapi.Update) {
 	_, _, state, ok := handler.UserSessionsMap.Get(update.Message.Chat.ID)
 	if !ok {
-		a.Handler.UnknownCommand(ctx, update)
+		logger.Error("Err no value in map usersessions", "app-RouteText()", nil)
+		a.Handler.UnknownCommand(ctx, update.Message.Chat.ID, "🔴 No value in map (user sessions), chat_id = "+strconv.Itoa(int(update.Message.Chat.ID)))
 	}
 	switch state {
-	case "create_tournament":
+	case "create_tournament_msg":
 		a.Handler.CreateTournament(ctx, update)
-	case "create_matches":
-		a.Handler.CreateMatch(ctx, update)
-	case "add_results":
-		a.Handler.AddMatchResult(ctx, update)
+	case "create_matches_msg":
+		a.Handler.CreateMatches(ctx, update)
+	case "add_results_msg":
+		a.Handler.AddMatchResults(ctx, update)
 	}
 }

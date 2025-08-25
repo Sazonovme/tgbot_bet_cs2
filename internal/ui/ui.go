@@ -1,12 +1,34 @@
 package ui
 
 import (
+	"RushBananaBet/internal/model"
 	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func PaintMainMenu(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
+func GetMainMenuMsg(chat_id int64, textMessage string, isAdmin bool) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(chat_id, textMessage)
+	msg.ReplyMarkup = GetMainMenuKeyboard(isAdmin)
+	return msg
+}
+
+func GetPredictionMsg(chat_id int64, textMessage string, matchName string, matchID int, tag string) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(chat_id, textMessage)
+	msg.ReplyMarkup = GetBetOnMatchKeyboard(matchName, matchID, tag)
+	return msg
+}
+
+func GetConfirmFormMsg(chat_id int64, confirm_predictions model.ConfirmPrediction) tgbotapi.MessageConfig {
+	match_id := strconv.Itoa(confirm_predictions.Match_id)
+	msg := tgbotapi.NewMessage(chat_id, confirm_predictions.TextMsg)
+	msg.ReplyMarkup = GetConfirmFormKeyboard(match_id, confirm_predictions.Bet, confirm_predictions.Tag)
+	return msg
+}
+
+// Keyboard
+
+func GetMainMenuKeyboard(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
 
@@ -19,6 +41,7 @@ func PaintMainMenu(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("🎯 Добавить результат", "add_results"),
 				tgbotapi.NewInlineKeyboardButtonData("🏁 Завершить турнир", "finish_tournament"),
+				tgbotapi.NewInlineKeyboardButtonData("*️⃣ Получить ИД матчей", "get_match_ids"),
 			),
 		)
 	}
@@ -26,20 +49,17 @@ func PaintMainMenu(userIsAdmin bool) tgbotapi.InlineKeyboardMarkup {
 	keyboard.InlineKeyboard = append(
 		keyboard.InlineKeyboard,
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📄 Мои прогнозы", "my_predictions"),
+			tgbotapi.NewInlineKeyboardButtonData("📄 Мои прогнозы", "user_predictions"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("⚔️ Сделать ставку", "active_matches"),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Завершить участие", "get_out"),
 		),
 	)
 
 	return keyboard
 }
 
-func PaintButtonsForBetOnMatch(matchName string, matchID int, tag string) tgbotapi.InlineKeyboardMarkup {
+func GetBetOnMatchKeyboard(matchName string, matchID int, tag string) tgbotapi.InlineKeyboardMarkup {
 
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
@@ -54,7 +74,7 @@ func PaintButtonsForBetOnMatch(matchName string, matchID int, tag string) tgbota
 	)
 }
 
-func PaintConfirmForm(tag string, matchID string, bet string) tgbotapi.InlineKeyboardMarkup {
+func GetConfirmFormKeyboard(matchID string, bet string, tag string) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("✅ Да", tag+"_prediction_"+matchID+"_"+bet+"_y"),
@@ -62,39 +82,3 @@ func PaintConfirmForm(tag string, matchID string, bet string) tgbotapi.InlineKey
 		),
 	)
 }
-
-//.  🔙
-
-func PaintUserPredictions() {
-
-}
-
-// func BuildKeyboard(username string) tgbotapi.ReplyKeyboardMarkup {
-// 	var rows [][]tgbotapi.KeyboardButton
-
-// 	// Админские кнопки
-// 	if user.IsAdmin(username) {
-// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 			tgbotapi.NewKeyboardButton("➕ Добавить ивент"),
-// 		))
-// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 			tgbotapi.NewKeyboardButton("🎯 Добавить результат"),
-// 		))
-// 		rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 			tgbotapi.NewKeyboardButton("🏁 Завершить турнир"),
-// 		))
-// 	}
-
-// 	// Пользовательская кнопка
-// 	rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 		tgbotapi.NewKeyboardButton("📄 Мои ставки"),
-// 	))
-
-// 	// Кнопки матчей
-// 	rows = append(rows, tgbotapi.NewKeyboardButtonRow(
-// 		tgbotapi.NewKeyboardButton("⚔️ Матч 1"),
-// 		tgbotapi.NewKeyboardButton("⚔️ Матч 2"),
-// 	))
-
-// 	return tgbotapi.NewReplyKeyboard(rows...)
-// }

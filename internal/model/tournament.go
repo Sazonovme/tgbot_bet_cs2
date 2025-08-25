@@ -1,15 +1,31 @@
 package model
 
-import "time"
+import (
+	"database/sql"
+	"slices"
+	"time"
+)
 
-type User struct {
-	Chat_id      int64
-	Username     string
-	First_name   string
-	Last_name    string
-	TextMsg      string
-	CallbackData string
-	IsAdmin      bool
+var AdminChatIDs []int64
+
+func IsAdmin(chat_id int64) bool {
+	return slices.Contains(AdminChatIDs, chat_id)
+}
+
+type UserData struct {
+	Chat_id int64
+	Text    string
+	IsAdmin bool
+}
+
+type ConfirmPrediction struct {
+	MatchName string
+	Match_id  int
+	Tag       string
+	Bet       string
+	BetText   string
+	TextMsg   string
+	Confirmed bool
 }
 
 type Match struct {
@@ -26,12 +42,13 @@ type Result struct {
 }
 
 type UserPrediction struct {
-	Match_Name string
 	Username   string
-	Match_id   uint
+	Chat_id    int64
+	Match_id   int
+	Match_name string
 	Prediction string
 	DateMatch  time.Time
-	Result     string
+	Result     sql.NullString
 }
 
 type TournamentFinishTable struct {

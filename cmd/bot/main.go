@@ -4,7 +4,7 @@ import (
 	"RushBananaBet/internal/app"
 	"RushBananaBet/internal/handler"
 	"RushBananaBet/internal/logger"
-	user "RushBananaBet/internal/model"
+	"RushBananaBet/internal/model"
 	"RushBananaBet/internal/repository"
 	"RushBananaBet/internal/service"
 	"RushBananaBet/pkg/db"
@@ -17,14 +17,14 @@ import (
 )
 
 var initData struct {
-	Admins          []string `yaml:"admins"`
-	BotToken        string   `yaml:"botToken"`
-	LogLevel        int      `yaml:"log-level"`
-	Production      bool     `yaml:"production"`
-	User_db         string   `yaml:"user_db"`
-	PasswordUser_db string   `yaml:"passwordUser_db"`
-	Name_db         string   `yaml:"name_db"`
-	Port_db         string   `yaml:"port_db"`
+	AdminsChatIDs   []int64 `yaml:"admins"`
+	BotToken        string  `yaml:"botToken"`
+	LogLevel        int     `yaml:"log-level"`
+	Production      bool    `yaml:"production"`
+	User_db         string  `yaml:"user_db"`
+	PasswordUser_db string  `yaml:"passwordUser_db"`
+	Name_db         string  `yaml:"name_db"`
+	Port_db         string  `yaml:"port_db"`
 }
 
 func init() {
@@ -39,7 +39,7 @@ func init() {
 	}
 
 	// Set admins
-	user.Admins = initData.Admins
+	model.AdminChatIDs = initData.AdminsChatIDs
 
 	// Init logger
 	logger.InitLogger(initData.LogLevel, initData.Production)
